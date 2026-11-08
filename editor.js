@@ -41,6 +41,20 @@ C : A == beta or A == gamma
 
   >find type All` },
     { title: 'Three Voices', type: 'Three types', difficulty: 'Easy', description: 'Practice alpha, beta, gamma, and the default one-of-each distribution.', source: example },
+    { title: 'Four Truth Roles', type: 'Role truth policies', difficulty: 'Medium', description: 'Compare two truth-telling roles with two lying roles.', source: `SETUP
+  stater A B
+  type god knight demon knave
+  types may repeat
+  role god is truthful
+  role knight is truthful
+  role demon is lying
+  role knave is lying
+
+  STATEMENTS
+  A : self == god or self == knight
+  B : self == god or self == knight
+
+  >find type All` },
     { title: 'The Missing Muffin', type: 'Role assignment', difficulty: 'Medium', description: 'A finite role variable identifies which person made a false statement.', source: `SETUP
   stater Aimee Bob Calvin
   type alpha beta gamma

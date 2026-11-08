@@ -132,6 +132,15 @@ L : L == beta on DAY - 1
 
 The inner proposition is evaluated with `DAY` shifted before rules and comparisons are applied. Wrapped contexts support both positive and negative offsets.
 
+Prefix guards can restrict a statement to one or more context values:
+
+```lpl
+L : on Sunday L == beta
+_ : on {Sun, Sat} L == beta
+```
+
+Outside the guard, the proposition evaluates as `unknown`. Full weekday names and their abbreviated case values are equivalent.
+
 Statements can be numbered and referenced conditionally:
 
 ```lpl

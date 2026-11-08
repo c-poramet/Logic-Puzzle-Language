@@ -7,7 +7,7 @@
 
   function tokenize(text, line) {
     const tokens = [];
-    const pattern = /\s*(<=>|=>|==|!=|[+-]|\(|\)|:|,|[A-Za-z_][A-Za-z0-9_]*|\d+)/g;
+    const pattern = /\s*(<=>|=>|==|!=|[+-]|[{}]|\(|\)|:|,|[A-Za-z_][A-Za-z0-9_]*|\d+)/g;
     let match;
     let end = 0;
     while ((match = pattern.exec(text))) {
@@ -27,6 +27,19 @@
     const fail = message => { throw new ErrorType(message, line); };
     const primary = () => {
       if (peek() === '(') { next(); const node = implication(); if (next() !== ')') fail('Expected ")"'); return node; }
+      if (peek()?.toLowerCase() === 'on') {
+        next();
+        let values = [];
+        const target = next();
+        if (target === '{') {
+          while (peek() && peek() !== '}') { if (peek() !== ',') values.push(next()); else next(); }
+          if (next() !== '}') fail('Expected "}" after context guard');
+        } else {
+          values = [target];
+        }
+        if (!values[0]) fail('Expected a context value after "on"');
+        return { kind: 'guard', values, value: implication() };
+      }
       const value = next();
       if (!value || keywords.has(value.toLowerCase()) || value === ')' || value === '==' || value === '!=') fail('Expected a name');
       if ((peek() === '+' || peek() === '-') && /^\d+$/.test(tokens[position + 1] || '')) {
@@ -41,6 +54,7 @@
         return { kind: 'not', value: peek() === '(' ? primary() : comparison() };
       }
       const left = primary();
+      if (left.kind === 'guard') return left;
       const operator = next();
       if (operator !== '==' && operator !== '!=') fail('Expected "==" or "!="');
       return { kind: 'compare', operator, left, right: primary() };

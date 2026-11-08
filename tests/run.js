@@ -313,4 +313,15 @@ _ 1: A == alpha
 _ : if -: then A == beta`);
 assert.strictEqual(shorthandModel.statements[0].id, 1);
 assert.strictEqual(shorthandModel.statements[1].expr.left.id, 1);
+
+const guardModel = parser.parse(`SETUP
+stater L
+type alpha beta
+case DAY Sun Mon Sat ... wrap
+STATEMENTS
+L : on Sunday L == beta
+_ : on {Sun, Sat} L == beta`);
+assert.strictEqual(solver.evaluate(guardModel.statements[0].expr, { L: 'beta', DAY: 'Sun' }, guardModel, 'L'), true);
+assert.strictEqual(solver.evaluate(guardModel.statements[0].expr, { L: 'beta', DAY: 'Mon' }, guardModel, 'L'), null);
+assert.strictEqual(solver.evaluate(guardModel.statements[1].expr, { L: 'beta', DAY: 'Sat' }, guardModel, '_'), true);
 console.log('LPL parser and solver tests passed.');

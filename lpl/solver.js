@@ -16,6 +16,7 @@
     iff: (left, right) => left === UNKNOWN || right === UNKNOWN ? UNKNOWN : left === right
   };
   const normalize = value => String(value).toLowerCase();
+  const contextName = value => ({ sunday: 'sun', monday: 'mon', tuesday: 'tue', wednesday: 'wed', thursday: 'thu', friday: 'fri', saturday: 'sat' }[normalize(value)] || normalize(value));
 
   function resolveName(name, model, subject) {
     const needle = normalize(name);
@@ -49,6 +50,11 @@
   }
 
   function evaluate(node, assignment, model, subject, seen = new Set()) {
+    if (node.kind === 'guard') {
+      const context = (model.contexts || []).find(item => node.values.some(value => item.values.some(candidate => contextName(candidate) === contextName(value))));
+      if (!context || !node.values.some(value => contextName(value) === contextName(assignment[context.name]))) return UNKNOWN;
+      return evaluate(node.value, assignment, model, subject, seen);
+    }
     if (node.kind === 'at') {
       const context = model.contexts?.find(item => normalize(item.name) === normalize(node.context));
       const current = context && assignment[context.name];

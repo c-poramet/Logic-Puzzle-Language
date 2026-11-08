@@ -129,6 +129,7 @@ C : A == beta or A == gamma
   function closePopups() { autocomplete.hidden = true; fixes.hidden = true; fixIssue = null; }
   function buildCompletions() {
     const { word } = wordAt();
+    if (window.LPLParser?.complete) return LPLParser.complete(source.value, source.selectionStart).map(item => ({ value: item.value, detail: item.detail }));
     const declared = source.value.match(/^\s*(?:stater|type)\s+(.+)$/gim) || [];
     const names = declared.flatMap(line => line.replace(/^\s*(?:stater|type)\s+/i, '').split(/[\s,]+/)).filter(Boolean);
     const values = [...new Set([...keywords, ...names, ...operators])];

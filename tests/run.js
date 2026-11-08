@@ -263,4 +263,16 @@ const thresholdResult = solver.solve(thresholdModel);
 assert.strictEqual(thresholdResult.count, 1);
 assert.strictEqual(thresholdResult.statistics.threshold, 1);
 assert.strictEqual(thresholdResult.statistics.truncated, true);
+
+const completionSource = `SETUP
+stater Aimee Bob
+type alpha beta
+var thief in {Aimee, Bob}
+case DAY Sun Mon Tue ... wrap
+group L_days = {Mon, Tue}
+1: A == alpha
+STATEMENTS
+`;
+const completionValues = parser.complete(completionSource, completionSource.length).map(item => item.value);
+assert.ok(['Aimee', 'thief', 'DAY', 'L_days', '1:'].every(value => completionValues.includes(value)));
 console.log('LPL parser and solver tests passed.');

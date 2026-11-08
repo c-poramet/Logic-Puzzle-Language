@@ -213,7 +213,34 @@
     return root.LPLModel ? root.LPLModel.attach(model) : model;
   }
 
-  const api = { tokenize, expression, parse };
+  function complete(source, cursor = source.length) {
+    const before = source.slice(0, cursor);
+    const match = before.match(/[A-Za-z_][A-Za-z0-9_]*$/);
+    const prefix = (match ? match[0] : '').toLowerCase();
+    const values = new Map();
+    const add = (value, detail) => { if (!value || (prefix && !value.toLowerCase().startsWith(prefix))) return; values.set(`${value}\0${detail}`, { value, detail }); };
+    ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
+    const lines = source.split(/\r?\n/);
+    lines.forEach(line => {
+      let found = line.match(/^\s*stater\s+(.+)$/i);
+      if (found) found[1].split(/[\s,]+/).filter(Boolean).forEach(value => add(value, 'stater'));
+      found = line.match(/^\s*type\s+(.+)$/i);
+      if (found) found[1].split(/[\s,]+/).filter(Boolean).forEach(value => add(value, 'type'));
+      found = line.match(/^\s*var\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s*\{([^}]*)\}/i);
+      if (found) { add(found[1], 'variable'); found[2].split(/[\s,]+/).filter(Boolean).forEach(value => add(value, `${found[1]} value`)); }
+      found = line.match(/^\s*case\s+([A-Za-z_][A-Za-z0-9_]*)\s+(.+)$/i);
+      if (found) { add(found[1], 'context'); found[2].split(/[\s,]+/).filter(value => value !== '...').forEach(value => add(value, `${found[1]} value`)); }
+      found = line.match(/^\s*group\s+([A-Za-z_][A-Za-z0-9_]*)/i);
+      if (found) add(found[1], 'group');
+      found = line.match(/^\s*policy\s+([A-Za-z_][A-Za-z0-9_]*)/i);
+      if (found) add(found[1], 'policy type');
+      found = line.match(/^\s*(\d+)\s*:/);
+      if (found) add(`${found[1]}:`, 'statement reference');
+    });
+    return [...values.values()].slice(0, 100);
+  }
+
+  const api = { tokenize, expression, parse, complete };
   root.LPLParser = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window === 'undefined' ? globalThis : window);

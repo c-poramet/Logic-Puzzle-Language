@@ -17,6 +17,7 @@
       const count = command.name === 'try' ? command.count : result.count;
       output.push(`<div class="step"><div class="step-head"><span class="step-number">${index + 1}</span><span class="step-command">${esc(command.name)} ${esc(command.target)} ${esc(command.argument)}</span><span class="step-count">${count} left</span></div>`);
       if (command.name === 'try') output.push(`<div class="chips"><span class="chip">${count ? 'possible' : 'impossible'}</span></div>`);
+      else if (command.brute) output.push(command.brute.error ? `<div class="warn">${esc(command.brute.error)}</div>` : `<div class="query-result"><div class="query-title">candidate statements</div><div class="query-list">${command.brute.candidates.map(candidate => `<div class="query-row"><span class="query-possible">${esc(candidate)}</span></div>`).join('') || '<div class="query-row"><span class="query-impossible">No compatible candidates</span></div>'}</div></div>`);
       else output.push(`<div class="solutions">${result.solutions.slice(0, 10).map(solution => `<div class="solution">${esc(solutionText(solution))}</div>`).join('') || '<div class="solution">No world satisfies the rules.</div>'}</div>`);
       output.push(renderQuery(command));
       output.push('</div>');

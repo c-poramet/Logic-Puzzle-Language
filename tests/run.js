@@ -241,4 +241,15 @@ assert.strictEqual(solver.evaluate(onExpression, { L: 'beta', DAY: 'Tue' }, onMo
 const dayQuery = solver.query(solver.solve(onModel), onModel.commands[0]);
 assert.strictEqual(dayQuery.choices[0].name, 'DAY');
 assert.ok(dayQuery.choices[0].possible.length > 0);
+
+const bruteModel = parser.parse(`SETUP
+stater A
+type alpha beta
+STATEMENTS
+A : _
+>solve 1: brute`);
+const bruteResult = solver.solve(bruteModel);
+const bruteQuery = solver.query(bruteResult, bruteModel.commands[0]);
+assert.strictEqual(bruteResult.count, 2);
+assert.ok(bruteQuery.brute.candidates.includes('A == alpha'));
 console.log('LPL parser and solver tests passed.');

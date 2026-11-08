@@ -40,7 +40,7 @@
       return [];
     };
     const statementSupport = statement => {
-      if (!evaluate || statement.subject.trim() === '_') return;
+      if (!evaluate || statement.subject.trim() === '_' || statement.expr.kind === 'hole') return;
       const subject = model.staters.find(name => normalize(name) === normalize(statement.subject) || normalize(name).startsWith(normalize(statement.subject)));
       if (!subject || !domains[subject]) return;
       const references = [...new Set(namesIn(statement.expr))].filter(name => !['self'].includes(normalize(name)));

@@ -156,6 +156,15 @@ Queries can focus the result on a particular variable or context:
 
 The result shows possible values and values eliminated from the surviving worlds. `All` keeps the full-world listing and assignment table.
 
+Blank comparison statements can be synthesized with a bounded brute-force query:
+
+```lpl
+1: _
+>solve 1: brute
+```
+
+The current synthesis explores single `==` and `!=` comparisons over declared variables, `self`, and declared values. Larger partial-expression synthesis remains future work.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

@@ -229,7 +229,7 @@
           return;
         }
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
-        const failedStatement = values.find(({ statement, value }) => statement.subject !== '?' && !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value, assignment, model));
+        const failedStatement = values.find(({ statement, value }) => statement.expr.kind !== 'hole' && statement.subject !== '?' && !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value, assignment, model));
         if (failedStatement) {
           explanations.add({ kind: 'statement', line: failedStatement.statement.line, message: `${failedStatement.statement.subject}'s statement is incompatible with ${assignment[resolveName(failedStatement.statement.subject, model, failedStatement.statement.subject)]}.` });
           return;
@@ -266,6 +266,8 @@
       const type = normalize(match[2]);
       return { ...command, count: result.solutions.filter(solution => normalize(solution.assignment[stater]) === type).length };
     }
+    const brute = argument.match(/^(\d+)\s*:\s*brute$/i);
+    if (brute) return { ...command, brute: synthesize(result, Number(brute[1])) };
     const all = !argument || /^all$/i.test(argument);
     const names = all ? (result.model.variables || result.model.staters.map(name => ({ name }))).map(variable => variable.name) : argument.split(/[\s,]+/).filter(Boolean).map(name => resolveName(name, result.model, name));
     const field = command.target === 'value' ? 'values' : 'assignment';
@@ -276,6 +278,27 @@
       return { name, possible, impossible };
     });
     return { ...command, names, field, all, choices };
+  }
+
+  function synthesize(result, id) {
+    const statement = result.model.statementsById?.[id] || result.model.statements.find(item => item.id === id);
+    if (!statement || statement.expr.kind !== 'hole') return { error: 'Brute synthesis requires a blank statement.' };
+    const names = ['self', ...(result.model.variables || []).map(variable => variable.name), ...result.model.types];
+    const candidates = [];
+    const seen = new Set();
+    const add = (left, operator, right) => {
+      const text = `${left} ${operator} ${right}`;
+      if (seen.has(text)) return;
+      seen.add(text);
+      const expr = { kind: 'compare', operator, left: { kind: 'name', value: left }, right: { kind: 'name', value: right } };
+      const compatible = result.solutions.some(solution => {
+        const value = evaluate(expr, solution.assignment, result.model, statement.subject);
+        return statement.subject === '?' || statement.subject === '_' || matchesType(solution.assignment[resolveName(statement.subject, result.model, statement.subject)], value, solution.assignment, result.model);
+      });
+      if (compatible) candidates.push({ text, expr });
+    };
+    for (const left of names) for (const right of names) { add(left, '==', right); add(left, '!=', right); }
+    return { statementId: id, candidates: candidates.slice(0, 100).map(candidate => candidate.text), truncated: candidates.length > 100 };
   }
 
   const api = { evaluate, solve, query, UNKNOWN };

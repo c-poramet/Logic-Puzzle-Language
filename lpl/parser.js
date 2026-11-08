@@ -182,15 +182,18 @@
         return;
       }
       if (section !== 'STATEMENTS') throw new ErrorType('Statements must follow a STATEMENTS section', line);
-      const match = text.match(/^(?:(\d+)\s*)?([^:]+?)\s*:\s*(.+)$/);
-      if (!match) throw new ErrorType('Expected "subject : statement"', line);
-      const statementText = match[3].trim();
+      const numbered = text.match(/^(\d+)\s*:\s*(.+)$/);
+      const match = numbered ? null : text.match(/^([^:]+?)\s*:\s*(.+)$/);
+      if (!numbered && !match) throw new ErrorType('Expected "subject : statement"', line);
+      const statementId = numbered ? Number(numbered[1]) : model.statements.length + 1;
+      const statementSubject = numbered ? '_' : match[1].trim();
+      const statementText = (numbered ? numbered[2] : match[2]).trim();
       let expr;
       const conditional = statementText.match(/^if\s+(\d+)\s*:?\s+then\s+(.+)$/i);
       if (statementText === '_') expr = { kind: 'hole' };
       else if (conditional) expr = { kind: 'implies', left: { kind: 'statementRef', id: Number(conditional[1]) }, right: expression(conditional[2], line) };
       else expr = expression(statementText, line);
-      const statement = { id: match[1] ? Number(match[1]) : model.statements.length + 1, subject: match[2].trim(), expr, source: text, line };
+      const statement = { id: statementId, subject: statementSubject, expr, source: text, line };
       model.statements.push(statement);
       if (statement.subject === '?') {
         activeQuestion = { statementId: statement.id, statement, answers: [] };

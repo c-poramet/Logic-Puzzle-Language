@@ -631,6 +631,227 @@ threshold = 10
 
 When the limit is reached, the result reports `threshold reached` and is marked truncated. Possible-value queries over truncated results are lower bounds rather than exhaustive impossibility proofs.
 
+## Guide: Find the Statements
+
+Some logic puzzles do not give you the statements. They ask you to **invent statements with a particular effect**:
+
+> Make exactly one of A and B a god, but keep it impossible to tell which one. Neither statement alone should reveal the answer.
+
+This is a statement-synthesis puzzle. The important distinction is:
+
+- An ordinary LPL program supplies statements and asks which worlds survive.
+- A synthesis program supplies the desired surviving worlds and asks LPL to find statements.
+
+### The translation recipe
+
+Translate this kind of puzzle in five steps:
+
+1. List the speakers with `stater`.
+2. List every possible role with `type`.
+3. Decide whether types may repeat. Add `types may repeat` unless the puzzle explicitly says there is exactly one of every type.
+4. Describe which roles must tell the truth or lie.
+5. Describe the desired result in `GOALS`.
+
+The engine then creates possible worlds, tries bounded expressions, and keeps expressions whose truth values agree with the speaker roles and the requested goals.
+
+### Worked example: the god puzzle
+
+The puzzle says:
+
+- A and B are unknown beings.
+- Each may be a god, knight, demon, or knave.
+- Gods and knights tell the truth.
+- Demons and knaves lie.
+- Exactly one of A and B is a god.
+- Both statements together must leave A and B as possible god identities.
+- Either statement alone must be insufficient.
+
+The compact LPL version is:
+
+```lpl
+SETUP
+stater A B
+type god knight demon knave
+types may repeat
+
+GOALS
+generate statements for A B
+god and knight statements are true
+demon and knave statements are false
+exactly 1 of A B is a god
+together leave exactly 2 possible god identities
+each statement alone is insufficient
+
+SOLVE
+>generate statements for A B using k-map
+```
+
+The role-truth lines belong in `GOALS` here because they describe the rules the generated statements must obey. They do not guess that the word `god` has a special meaning.
+
+A compact result can be:
+
+```lpl
+A : self == god or self == knight
+B : self == god or self == knight
+```
+
+Plain language:
+
+> A says, “I am a god or knight.”
+> B says, “I am a god or knight.”
+
+For a truthful speaker, the expression is true. For a demon or knave, it is false. Therefore the expression is compatible with every role. The exact-one-god goal leaves these two possibilities:
+
+```text
+A = god, B != god
+A != god, B = god
+```
+
+Because neither individual statement removes one of those possibilities, the “alone is insufficient” goal also passes.
+
+### Fixed person, unknown partner
+
+To force A to be a thief while leaving B unresolved:
+
+```lpl
+SETUP
+stater A B
+type thief innocent knight
+types may repeat
+
+GOALS
+generate statements for A B
+exactly 1 of A B is a thief
+A is definitely a thief
+B remains unknown
+
+SOLVE
+>generate statements for A B
+```
+
+The goals have precise meanings:
+
+- `exactly 1 ... is a thief`: one and only one thief exists among A and B.
+- `A is definitely a thief`: every surviving world assigns `thief` to A.
+- `B remains unknown`: B has more than one possible type in the surviving worlds.
+
+This is different from saying “B is not a thief.” B may be innocent or knight; the point is that LPL must not collapse those possibilities into one answer.
+
+### Exactly two thieves
+
+For three speakers where exactly two are thieves:
+
+```lpl
+SETUP
+stater A B C
+type thief innocent
+types may repeat
+
+GOALS
+generate statements for A B C
+exactly 2 of A B C is a thief
+together leave exactly 3 possible thief identities
+each statement alone is insufficient
+
+SOLVE
+>generate statements for A B C
+```
+
+The three possible identity sets are:
+
+```text
+A and B are thieves
+A and C are thieves
+B and C are thieves
+```
+
+The goal does not ask LPL to select one pair. It asks for statements that preserve all three pair possibilities while enforcing exactly two thieves in every surviving world.
+
+### Requesting a number of statements
+
+Normally, LPL creates one statement for each named speaker:
+
+```lpl
+>generate statements for A B
+```
+
+Use an explicit number when the puzzle needs a specific number of statement slots:
+
+```lpl
+>generate 3 statements for A B
+```
+
+This creates three slots and cycles through the named speakers when necessary. The result panel labels each slot and gives its plain-language reading. The same form works in `GOALS`:
+
+```lpl
+GOALS
+generate 3 statements for A B
+```
+
+Use this when one speaker may make multiple statements or when the puzzle describes a fixed total number of statements.
+
+### When to use K-map mode
+
+Use the normal generator when you want any valid bounded expression:
+
+```lpl
+>generate statements for A B
+```
+
+Use K-map mode when you prefer compact boolean expressions:
+
+```lpl
+>generate statements for A B using k-map
+```
+
+K-map mode groups worlds by the truth value needed from a speaker and searches for short expressions such as:
+
+```lpl
+self == god or self == knight
+```
+
+It is a minimization aid. It does not understand arbitrary English and does not guarantee that the first result is the only or most elegant statement.
+
+### Reading the result
+
+For every candidate, inspect four pieces of evidence:
+
+1. **Statements**: the exact expressions LPL generated.
+2. **Plain language**: the rough reading under each expression.
+3. **Possible identities**: which people can still have the requested role together.
+4. **Alone**: which identities remain when each statement is tested by itself.
+
+A candidate is conclusive for the declared finite model when all requested goal checks pass. For example:
+
+```text
+possible together: A, B
+A alone: A, B
+B alone: A, B
+```
+
+This proves that both identities remain possible and neither statement alone identifies one. It does not prove that no other wording could work.
+
+### Common translation mistakes
+
+Do not write this unless the puzzle really requires one of every role:
+
+```lpl
+stater A B
+type god knight demon knave
+```
+
+When the number of staters equals the number of types, LPL normally activates one-of-each distribution. For two speakers and four roles, that default does not activate, but `types may repeat` still makes the intention explicit.
+
+Do not rely on role names alone:
+
+```lpl
+type god demon
+```
+
+The names `god` and `demon` do not automatically mean truthful and lying. State the behavior in the goals or with explicit role policies.
+
+Finally, “no candidates found” is not always a contradiction. Check whether the search was truncated, whether the role policies are complete, and whether the requested identity count is compatible with the cardinality goal.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

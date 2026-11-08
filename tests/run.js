@@ -275,4 +275,14 @@ STATEMENTS
 `;
 const completionValues = parser.complete(completionSource, completionSource.length).map(item => item.value);
 assert.ok(['Aimee', 'thief', 'DAY', 'L_days', '1:'].every(value => completionValues.includes(value)));
+
+const statementQueryModel = parser.parse(`SETUP
+stater A
+type alpha beta gamma
+STATEMENTS
+1: A == alpha
+>find value 1:`);
+const statementQueryResult = solver.solve(statementQueryModel);
+const statementQuery = solver.query(statementQueryResult, statementQueryModel.commands[0]);
+assert.deepStrictEqual(statementQuery.choices[0].possible.sort(), ['false', 'true']);
 console.log('LPL parser and solver tests passed.');

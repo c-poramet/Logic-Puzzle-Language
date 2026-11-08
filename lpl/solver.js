@@ -273,13 +273,22 @@
     const brute = argument.match(/^(\d+)\s*:\s*brute$/i);
     if (brute) return { ...command, brute: synthesize(result, Number(brute[1])) };
     const all = !argument || /^all$/i.test(argument);
-    const names = all ? (result.model.variables || result.model.staters.map(name => ({ name }))).map(variable => variable.name) : argument.split(/[\s,]+/).filter(Boolean).map(name => resolveName(name, result.model, name));
+    const references = !all ? argument.split(/[\s,]+/).filter(Boolean).filter(name => /^\d+:$/.test(name)) : [];
+    const names = all ? (result.model.variables || result.model.staters.map(name => ({ name }))).map(variable => variable.name) : argument.split(/[\s,]+/).filter(Boolean).filter(name => !/^\d+:$/.test(name)).map(name => resolveName(name, result.model, name));
     const field = command.target === 'value' ? 'values' : 'assignment';
     const choices = names.map(name => {
       const variable = result.model.variables?.find(item => item.name === name);
       const possible = [...new Set(result.solutions.map(solution => solution.assignment[name]).filter(value => value != null))];
       const impossible = variable ? variable.domain.filter(value => !possible.some(candidate => normalize(candidate) === normalize(value))) : [];
       return { name, possible, impossible };
+    });
+    references.forEach(reference => {
+      const id = Number(reference.slice(0, -1));
+      const possible = [...new Set(result.solutions.map(solution => {
+        const value = solution.values.find(item => item.statement.id === id)?.value;
+        return value === true ? 'true' : value === false ? 'false' : 'unknown';
+      }))];
+      choices.push({ name: reference, possible, impossible: ['true', 'false', 'unknown'].filter(value => !possible.includes(value)) });
     });
     return { ...command, names, field, all, choices };
   }

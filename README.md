@@ -65,6 +65,18 @@ B : A == alpha => B == beta
 C : A == alpha <=> B == beta
 ```
 
+Finite contexts and named groups are supported for ordered or cyclic cases:
+
+```lpl
+case DAY Sun Mon Tue ... wrap
+group L_days = {Mon, Tue, Wed}
+
+STATEMENTS
+Lion : DAY - 1 == L_days
+```
+
+`wrap` makes offsets circular. The current context slice supports named groups and offset comparisons; procedural `if`/`elseif` blocks and richer `on` statements remain future syntax.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

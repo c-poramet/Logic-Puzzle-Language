@@ -10,7 +10,15 @@
       domain: model.types.slice(),
       source: 'stater'
     }));
-    const variables = [...staterVariables, ...(model.valueVariables || []).map(variable => ({ ...variable, domain: variable.domain.slice(), source: 'var' }))];
+    const valueVariables = (model.valueVariables || []).map(variable => ({ ...variable, domain: variable.domain.slice(), source: 'var' }));
+    const contextVariables = (model.caseDeclarations || []).map(context => ({
+      name: context.name,
+      kind: 'context',
+      domain: context.values.slice(),
+      wrap: context.wrap,
+      source: 'case'
+    }));
+    const variables = [...staterVariables, ...valueVariables, ...contextVariables];
     const domains = Object.fromEntries(variables.map(variable => [variable.name, variable.domain.slice()]));
     const statementsById = Object.fromEntries(model.statements.map(statement => [statement.id, statement]));
     const constraints = [];
@@ -29,7 +37,8 @@
       variables,
       domains,
       constraints,
-      contexts: [],
+      contexts: (model.caseDeclarations || []).map(context => ({ ...context, values: context.values.slice() })),
+      groups: Object.fromEntries((model.groups || []).map(group => [group.name, { ...group, values: group.values.slice() }])),
       statementsById,
       diagnostics: [],
       variable(name) {

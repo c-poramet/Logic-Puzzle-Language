@@ -4,6 +4,7 @@
   const ErrorType = root.LPLRuntime?.Error || class extends Error {};
   const UNKNOWN = null;
   const UNASSIGNED = root.LPLConstraints?.UNASSIGNED || Symbol('lpl.unassigned');
+  const contextOps = root.LPLContexts || { shift: () => undefined };
   const logic = root.LPLConstraints || {
     and: (left, right) => left === false || right === false ? false : left === true && right === true ? true : UNKNOWN,
     or: (left, right) => left === true || right === true ? true : left === false && right === false ? false : UNKNOWN,
@@ -32,15 +33,25 @@
     if (node.kind === 'not') return logic.not(evaluate(node.value, assignment, model, subject));
     if (node.kind === 'name') return resolveName(node.value, model, subject);
     if (node.kind === 'compare') {
-      const left = resolveName(node.left.value, model, subject);
-      const right = resolveName(node.right.value, model, subject);
+      const leftRaw = node.left.name || node.left.value;
+      const rightRaw = node.right.name || node.right.value;
+      const leftGroup = node.left.kind === 'name' ? model.groups?.[node.left.value] : null;
+      const rightGroup = node.right.kind === 'name' ? model.groups?.[node.right.value] : null;
+      const left = leftGroup ? leftRaw : resolveName(leftRaw, model, subject);
+      const right = rightGroup ? rightRaw : resolveName(rightRaw, model, subject);
       const leftVariable = model.variables?.find(variable => variable.name === left);
       const rightVariable = model.variables?.find(variable => variable.name === right);
-      const leftIsDomainLiteral = rightVariable?.domain.some(value => normalize(value) === normalize(node.left.value));
-      const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(node.right.value));
-      const leftValue = leftIsDomainLiteral ? node.left.value : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : assignment[left] ?? left;
-      const rightValue = rightIsDomainLiteral ? node.right.value : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : assignment[right] ?? right;
+      const leftIsDomainLiteral = rightVariable?.domain.some(value => normalize(value) === normalize(leftRaw));
+      const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw));
+      const leftValue = node.left.kind === 'offset'
+        ? (() => { const context = model.contexts?.find(item => normalize(item.name) === normalize(leftRaw)); const current = assignment[context?.name]; return context && current !== undefined ? contextOps.shift(context, current, node.left.amount) : UNASSIGNED; })()
+        : leftIsDomainLiteral ? leftRaw : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : assignment[left] ?? left;
+      const rightValue = node.right.kind === 'offset'
+        ? (() => { const context = model.contexts?.find(item => normalize(item.name) === normalize(rightRaw)); const current = assignment[context?.name]; return context && current !== undefined ? contextOps.shift(context, current, node.right.amount) : UNASSIGNED; })()
+        : rightIsDomainLiteral ? rightRaw : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : assignment[right] ?? right;
       if (leftValue === UNASSIGNED || rightValue === UNASSIGNED) return UNKNOWN;
+      if (rightGroup) return rightGroup.values.some(value => normalize(value) === normalize(leftValue));
+      if (leftGroup) return leftGroup.values.some(value => normalize(value) === normalize(rightValue));
       const equal = normalize(leftValue) === normalize(rightValue);
       return node.operator === '==' ? equal : !equal;
     }

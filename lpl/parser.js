@@ -2,11 +2,12 @@
 
 (function (root) {
   const ErrorType = root.LPLRuntime?.Error || class extends Error {};
+  const contexts = root.LPLContexts || { expandCase: values => values.filter(value => value !== '...') };
   const keywords = new Set(['and', 'or']);
 
   function tokenize(text, line) {
     const tokens = [];
-    const pattern = /\s*(<=>|=>|==|!=|\(|\)|:|,|[A-Za-z_][A-Za-z0-9_]*|\d+)/g;
+    const pattern = /\s*(<=>|=>|==|!=|[+-]|\(|\)|:|,|[A-Za-z_][A-Za-z0-9_]*|\d+)/g;
     let match;
     let end = 0;
     while ((match = pattern.exec(text))) {
@@ -28,6 +29,10 @@
       if (peek() === '(') { next(); const node = implication(); if (next() !== ')') fail('Expected ")"'); return node; }
       const value = next();
       if (!value || keywords.has(value.toLowerCase()) || value === ')' || value === '==' || value === '!=') fail('Expected a name');
+      if ((peek() === '+' || peek() === '-') && /^\d+$/.test(tokens[position + 1] || '')) {
+        const amount = Number(next() + next());
+        return { kind: 'offset', name: value, amount };
+      }
       return { kind: 'name', value };
     };
     const comparison = () => {
@@ -67,7 +72,7 @@
   function parse(source) {
     const lines = source.split(/\r?\n/);
     let section = '';
-    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], statements: [], commands: [], options: {} };
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], statements: [], commands: [], options: {} };
     lines.forEach((raw, index) => {
       const line = index + 1;
       const text = raw.replace(/#.*/, '').trim();
@@ -85,6 +90,23 @@
           const values = match[2].split(/[\s,]+/).filter(Boolean);
           if (!values.length) throw new ErrorType(`Variable "${match[1]}" must have at least one value`, line);
           model.valueVariables.push({ name: match[1], kind: 'value', domain: values });
+          return;
+        }
+        match = text.match(/^case\s+([A-Za-z_][A-Za-z0-9_]*)\s+(.+)$/i);
+        if (match) {
+          const rawValues = match[2].split(/[\s,]+/).filter(Boolean);
+          const wrap = rawValues.some(value => value.toLowerCase() === 'wrap');
+          const values = rawValues.filter(value => value.toLowerCase() !== 'wrap');
+          const expanded = contexts.expandCase(values);
+          if (!expanded.length) throw new ErrorType(`Case "${match[1]}" must have values`, line);
+          model.caseDeclarations.push({ name: match[1], values: expanded, wrap, line });
+          return;
+        }
+        match = text.match(/^group\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*\{([^}]*)\}$/i);
+        if (match) {
+          const values = match[2].split(/[\s,]+/).filter(Boolean);
+          if (!values.length) throw new ErrorType(`Group "${match[1]}" must have values`, line);
+          model.groups.push({ name: match[1], values, line });
           return;
         }
         match = text.match(/^(exactly|atleast|atmost)\s+(\d+)\s+of\s+(.+?)\s*==\s*([A-Za-z_][A-Za-z0-9_]*)$/i);

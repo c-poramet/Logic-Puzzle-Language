@@ -11,6 +11,8 @@ SETUP
 stater <name> <name> ...
 type <type> <type> ...
 var <name> in {<value>, <value>, ...}
+case <name> <value> <value> ... wrap
+group <name> = {<value>, <value>, ...}
 
 STATEMENTS
 <subject> : <expression>
@@ -27,6 +29,7 @@ Supported expressions currently contain:
 - `not`, `=>`, and `<=>`
 - parentheses
 - finite-domain variables declared with `var ... in {...}`
+- finite contexts, wrapped offsets, and named groups
 
 Type semantics:
 
@@ -63,6 +66,8 @@ Supported commands include:
 16. Declare objects such as a thief explicitly before comparing them in a statement.
 17. Translate “exactly N”, “at least N”, and “at most N” into `exactly N of ... == value`, `atleast N of ... == value`, and `atmost N of ... == value`.
 18. Translate “if ... then ...” with `=>` and “if and only if” with `<=>`; preserve parentheses around each proposition.
+19. Use `case ... wrap` and `group ... = {...}` for ordered cyclic contexts such as days of the week. Use offset comparisons such as `DAY - 1 == L_days`.
+20. Do not emit procedural `if`/`elseif`, `on` statements, questions, or blank-statement synthesis yet; report them as unsupported unless the requested puzzle can be represented with the supported context forms.
 
 ## Required response format
 

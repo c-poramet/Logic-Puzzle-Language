@@ -3,6 +3,7 @@
 const assert = require('assert');
 require('../lpl/model.js');
 const constraints = require('../lpl/constraints.js');
+require('../lpl/contexts.js');
 const propagate = require('../lpl/propagate.js');
 const parser = require('../lpl/parser.js');
 const solver = require('../lpl/solver.js');
@@ -91,4 +92,18 @@ B : not (A == beta)`);
 const logicValues = logicModel.statements.map(statement => solver.evaluate(statement.expr, { A: 'alpha', B: 'beta' }, logicModel, statement.subject));
 assert.deepStrictEqual(logicModel.statements.map(statement => statement.expr.kind), ['implies', 'not']);
 assert.deepStrictEqual(logicValues, [true, true]);
+
+const contextModel = parser.parse(`SETUP
+stater Lion Unicorn
+type alpha beta
+case DAY Sun Mon Tue ... wrap
+group L_days = {Mon, Tue, Wed}
+group U_days = {Thu, Fri, Sat}
+STATEMENTS
+Lion : DAY - 1 == L_days
+Unicorn : DAY - 1 == U_days
+>solve DAY`);
+const contextResult = solver.solve(contextModel);
+assert.deepStrictEqual(contextModel.contexts[0].values, ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']);
+assert.strictEqual(contextResult.count, 6);
 console.log('LPL parser and solver tests passed.');

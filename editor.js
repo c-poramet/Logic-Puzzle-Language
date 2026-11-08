@@ -18,7 +18,7 @@ A : A == beta
 B : A == alpha
 C : A == beta or A == gamma
 >find type All`;
-  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'and', 'or'];
+  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
@@ -55,7 +55,7 @@ C : A == beta or A == gamma
   }
   function classify(token) {
     if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(token)) return 'syntax-section';
-    if (/^(stater|type|threshold|find|solve|try|value|self|All)$/i.test(token)) return 'syntax-keyword';
+    if (/^(stater|type|var|case|group|exactly|atleast|atmost|threshold|find|solve|try|value|self|All|wrap)$/i.test(token)) return 'syntax-keyword';
     if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
     if (/^(<=>|=>|==|!=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
     return 'syntax-name';
@@ -65,7 +65,7 @@ C : A == beta or A == gamma
     const code = commentAt < 0 ? line : line.slice(0, commentAt);
     const comment = commentAt < 0 ? '' : line.slice(commentAt);
     const parts = [];
-    const pattern = /<=>|=>|==|!=|\(|\)|:|>|[A-Za-z_][A-Za-z0-9_]*/g;
+    const pattern = /<=>|=>|==|!=|[+-]\d+|\(|\)|:|>|[A-Za-z_][A-Za-z0-9_]*/g;
     let last = 0;
     let match;
     while ((match = pattern.exec(code))) {
@@ -86,8 +86,8 @@ C : A == beta or A == gamma
       if (!text) return;
       if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(text)) { mode = text.toUpperCase(); return; }
       if (mode === 'SETUP') {
-        if (/^stater\s+/i.test(text) || /^type\s+/i.test(text) || /^threshold\s*=\s*\d+$/i.test(text)) return;
-        issues.push({ line: index + 1, message: 'Expected stater, type, or threshold declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
+        if (/^stater\s+/i.test(text) || /^type\s+/i.test(text) || /^var\s+/i.test(text) || /^case\s+/i.test(text) || /^group\s+/i.test(text) || /^(?:exactly|atleast|atmost)\s+\d+\s+of\s+/i.test(text) || /^threshold\s*=\s*\d+$/i.test(text)) return;
+        issues.push({ line: index + 1, message: 'Expected a supported SETUP declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
       if (text.startsWith('>')) {

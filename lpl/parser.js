@@ -225,11 +225,11 @@
         throw new ErrorType('Expected a stater, type, or threshold declaration', line);
       }
       if (section === 'GOALS') {
-        let goalMatch = text.match(/^generate\s+statements?\s+for\s+(.+)$/i);
+        let goalMatch = text.match(/^generate\s+(?:(\d+)\s+)?statements?\s+for\s+(.+)$/i);
         if (goalMatch) {
-          const subjects = goalMatch[1].split(/[\s,]+/).filter(Boolean);
+          const subjects = goalMatch[2].split(/[\s,]+/).filter(Boolean);
           if (!subjects.length) throw new ErrorType('Statement generation needs at least one subject', line);
-          model.goals.push({ kind: 'statement-synthesis', subjects, line });
+          model.goals.push({ kind: 'statement-synthesis', subjects, statementCount: goalMatch[1] ? Number(goalMatch[1]) : null, line });
           return;
         }
         goalMatch = text.match(/^(?:together|jointly)\s+leave\s+exactly\s+(\d+)\s+possible\s+(.+?)\s+identit(?:y|ies)$/i);
@@ -267,10 +267,10 @@
         throw new ErrorType('Expected a statement-generation or puzzle goal', line);
       }
       if (text.startsWith('>')) {
-        const generate = text.match(/^>\s*generate\s+statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
+        const generate = text.match(/^>\s*generate\s+(?:(\d+)\s+)?statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
         if (generate) {
           const method = /(?:using\s+)?k-?map|--kmap|--method\s+k-?map$/i.test(text) ? 'kmap' : 'default';
-          model.commands.push({ name: 'generate', target: 'statements', argument: generate[1].trim(), method, line });
+          model.commands.push({ name: 'generate', target: 'statements', argument: generate[2].trim(), statementCount: generate[1] ? Number(generate[1]) : null, method, line });
           return;
         }
         const match = text.match(/^>\s*(find|solve|try)\s+(type|value|possible|impossible)?\s*(.*)$/i);

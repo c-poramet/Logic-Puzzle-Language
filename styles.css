@@ -1,3 +1,4 @@
+.statement-reading{flex-basis:100%;margin-left:108px;color:var(--text-sec);font:var(--fs-2xs)/1.4 var(--font-ui);font-style:italic}
 .workspace{height:calc(100vh - 142px);min-height:0!important}.panel,.editor-panel,.results-panel{min-height:0}.editor{min-height:0!important}
 @media(max-width:720px){.workspace{height:auto;min-height:auto!important}.editor{min-height:350px!important}}
 .workspace{gap:8px!important}

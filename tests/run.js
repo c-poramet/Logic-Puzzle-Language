@@ -359,6 +359,24 @@ const kMapQuery = solver.query(solver.solve(kMapModel), kMapModel.commands[0]);
 assert.strictEqual(kMapQuery.synthesis.method, 'kmap');
 assert.ok(kMapQuery.synthesis.tuples.length > 0);
 
+const countedGenerationModel = parser.parse(`SETUP
+stater A B
+type god knight demon knave
+types may repeat
+GOALS
+generate 3 statements for A B
+together leave exactly 2 possible god identities
+each statement alone is insufficient
+god and knight statements are true
+demon and knave statements are false
+exactly 1 of A B is a god
+SOLVE
+>generate 3 statements for A B`);
+assert.strictEqual(countedGenerationModel.commands[0].statementCount, 3);
+const countedGenerationQuery = solver.query(solver.solve(countedGenerationModel), countedGenerationModel.commands[0]);
+assert.ok(countedGenerationQuery.synthesis.tuples.length > 0);
+assert.strictEqual(countedGenerationQuery.synthesis.tuples[0].statements.length, 3);
+
 const thresholdModel = parser.parse(`SETUP
 stater A B C
 type alpha beta gamma

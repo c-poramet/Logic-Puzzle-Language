@@ -224,7 +224,11 @@
     const subjects = [...new Set((options.subjects || []).map(value => String(value)).filter(Boolean))];
     const goals = model.goals || [];
     const synthesisGoal = goals.find(goal => goal.kind === 'statement-synthesis');
-    const requestedSubjects = subjects.length ? subjects : synthesisGoal?.subjects || [];
+    const sourceSubjects = subjects.length ? subjects : synthesisGoal?.subjects || [];
+    const statementCount = options.statementCount || synthesisGoal?.statementCount || null;
+    const requestedSubjects = statementCount && sourceSubjects.length
+      ? Array.from({ length: statementCount }, (_, index) => sourceSubjects[index % sourceSubjects.length])
+      : sourceSubjects;
     if (!requestedSubjects.length) return { kind: 'statement-synthesis', supported: false, message: 'Statement synthesis needs at least one subject.' };
     const unknownSubjects = requestedSubjects.filter(subject => !model.staters.some(name => normalize(name) === normalize(subject)));
     if (unknownSubjects.length) return { kind: 'statement-synthesis', supported: false, message: `Unknown statement subject(s): ${unknownSubjects.join(', ')}.` };

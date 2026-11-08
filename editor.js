@@ -281,7 +281,7 @@ C : A == beta or A == gamma
         return;
       }
       if (mode === 'GOALS') {
-        if (/^(?:generate\s+statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|exactly\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
+        if (/^(?:generate\s+(?:\d+\s+)?statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|exactly\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
         issues.push({ line: index + 1, message: 'Expected a supported GOALS declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
@@ -381,8 +381,8 @@ C : A == beta or A == gamma
     if (match) return `Requires ${match[1]} ${match[2]} of ${match[3]} to have type or value ${match[4]}.`;
     match = line.match(/^threshold\s*=\s*(\d+)$/i);
     if (match) return `Stops world search after ${match[1]} surviving result${match[1] === '1' ? '' : 's'}; this may mark the result as truncated.`;
-    match = line.match(/^generate\s+statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
-    if (match) return `Asks LPL to derive one statement for each of ${match[1].trim()}${/k-?map|--kmap/i.test(line) ? ' using compact Karnaugh-map-style boolean minimization' : ''}.`;
+    match = line.match(/^generate\s+(?:(\d+)\s+)?statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
+    if (match) return `Asks LPL to derive ${match[1] ? `${match[1]} statements` : 'one statement for each'} for ${match[2].trim()}${/k-?map|--kmap/i.test(line) ? ' using compact Karnaugh-map-style boolean minimization' : ''}.`;
     match = line.match(/^(?:together|jointly)\s+leave\s+exactly\s+(\d+)\s+possible\s+(.+?)\s+identit(?:y|ies)$/i);
     if (match) return `Together, the generated statements must leave exactly ${match[1]} possible ${match[2].replace(/^the\s+/i, '').trim()} identities.`;
     match = line.match(/^each\s+statement\s+alone\s+(?:leaves\s+(?:the\s+)?(.+?)\s+identit(?:y|ies)\s+unknown|is\s+insufficient)$/i);

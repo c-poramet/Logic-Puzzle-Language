@@ -3,13 +3,22 @@
 (function (root) {
   const esc = root.LPLRuntime.esc;
   const solutionText = solution => Object.entries(solution.assignment).map(([name, type]) => `${name} = ${type}`).join('  ·  ');
+  const readableExpression = (node, subject) => {
+    if (!node) return 'unknown expression';
+    if (node.kind === 'name') return String(node.value).toLowerCase() === 'self' ? subject : node.value;
+    if (node.kind === 'offset') return `${node.name} ${node.amount < 0 ? `${Math.abs(node.amount)} step${Math.abs(node.amount) === 1 ? '' : 's'} before` : `${node.amount} step${node.amount === 1 ? '' : 's'} after`}`;
+    if (node.kind === 'compare') return `${readableExpression(node.left, subject)} ${node.operator === '==' ? 'is' : 'is not'} ${readableExpression(node.right, subject)}`;
+    if (node.kind === 'not') return `not (${readableExpression(node.value, subject)})`;
+    if (node.kind === 'and' || node.kind === 'or') return `(${readableExpression(node.left, subject)} ${node.kind} ${readableExpression(node.right, subject)})`;
+    return 'unknown expression';
+  };
   function render(result, commands) {
     const model = result.model;
     const output = [];
     const renderSynthesis = synthesis => {
       if (!synthesis.supported) return `<div class="warn">${esc(synthesis.message || 'Statement synthesis is unavailable.')}</div>`;
       const warning = synthesis.truncated ? '<div class="warn">Search limit reached. The listed candidates are not a proof that no other statements exist.</div>' : '';
-      const tuples = synthesis.tuples?.length ? synthesis.tuples.map((tuple, tupleIndex) => `<div class="synthesis-card"><div class="query-title">candidate ${tupleIndex + 1}</div><div class="query-list">${tuple.statements.map(statement => `<div class="query-row"><strong>${esc(statement.subject)}</strong><span class="query-possible">${esc(statement.text)}</span></div>`).join('')}</div><div class="synthesis-evidence"><span>${tuple.survivingWorlds} worlds survive together</span><span>possible ${esc(tuple.possibleIdentities.join(', ') || 'none')}</span><span>alone: ${tuple.singlePossibleIdentities.map((identities, index) => `${esc(synthesis.subjects[index])} = ${esc(identities.join(', ') || 'none')}`).join(' · ')}</span><span>goals: ${Object.entries(tuple.checks || {}).map(([name, passed]) => `${esc(name)} ${passed ? 'pass' : 'fail'}`).join(' · ')}</span></div></div>`).join('') : '<div class="query-row"><span class="query-impossible">No candidate tuple satisfies the declared goals.</span></div>';
+      const tuples = synthesis.tuples?.length ? synthesis.tuples.map((tuple, tupleIndex) => `<div class="synthesis-card"><div class="query-title">candidate ${tupleIndex + 1}</div><div class="query-list">${tuple.statements.map(statement => `<div class="query-row"><strong>${esc(statement.subject)}</strong><span class="query-possible">${esc(statement.text)}</span><span class="statement-reading">${esc(statement.subject)} says: ${esc(readableExpression(statement.expr, statement.subject))}.</span></div>`).join('')}</div><div class="synthesis-evidence"><span>${tuple.survivingWorlds} worlds survive together</span><span>possible ${esc(tuple.possibleIdentities.join(', ') || 'none')}</span><span>alone: ${tuple.singlePossibleIdentities.map((identities, index) => `${esc(synthesis.subjects[index])} = ${esc(identities.join(', ') || 'none')}`).join(' · ')}</span><span>goals: ${Object.entries(tuple.checks || {}).map(([name, passed]) => `${esc(name)} ${passed ? 'pass' : 'fail'}`).join(' · ')}</span></div></div>`).join('') : '<div class="query-row"><span class="query-impossible">No candidate tuple satisfies the declared goals.</span></div>';
       return `${warning}<div class="query-result synthesis-result"><div class="query-title">generated statements · ${esc(synthesis.method || 'default')} · ${synthesis.expressionCount} expressions · ${synthesis.tupleCount} tuples checked</div>${tuples}</div>`;
     };
     const renderQuery = command => {
@@ -21,7 +30,8 @@
     output.push(`<div class="result-head"><h2>Possibility space</h2><span class="note">${result.exactOneEach ? 'exactly one of each type' : 'no cardinality rule'}${statsNote ? ` · ${statsNote}` : ''}</span></div>`);
     commands.forEach((command, index) => {
       const count = command.name === 'try' ? command.count : command.synthesis ? command.synthesis.tuples?.length || 0 : result.count;
-      output.push(`<div class="step"><div class="step-head"><span class="step-number">${index + 1}</span><span class="step-command">${esc(command.name)} ${esc(command.target)} ${esc(command.argument)}</span><span class="step-count">${count} left</span></div>`);
+      const commandLabel = command.name === 'generate' && command.statementCount ? `generate ${command.statementCount} statements for ${command.argument}` : `${command.name} ${command.target} ${command.argument}`;
+      output.push(`<div class="step"><div class="step-head"><span class="step-number">${index + 1}</span><span class="step-command">${esc(commandLabel)}</span><span class="step-count">${count} left</span></div>`);
       if (command.name === 'try') output.push(`<div class="chips"><span class="chip">${count ? 'possible' : 'impossible'}</span></div>`);
       else if (command.synthesis) output.push(renderSynthesis(command.synthesis));
       else if (command.brute) output.push(command.brute.error ? `<div class="warn">${esc(command.brute.error)}</div>` : `<div class="query-result"><div class="query-title">candidate statements</div><div class="query-list">${command.brute.candidates.map(candidate => `<div class="query-row"><span class="query-possible">${esc(candidate)}</span></div>`).join('') || '<div class="query-row"><span class="query-impossible">No compatible candidates</span></div>'}</div></div>`);

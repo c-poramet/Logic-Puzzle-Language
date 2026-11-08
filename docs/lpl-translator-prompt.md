@@ -24,6 +24,7 @@ Supported expressions currently contain:
 - `self` for the statement subject
 - `==` and `!=`
 - `and` and `or`
+- `not`, `=>`, and `<=>`
 - parentheses
 - finite-domain variables declared with `var ... in {...}`
 
@@ -61,6 +62,7 @@ Supported commands include:
 15. Treat “exactly one of each type” as active when the program declares the same number of staters and types.
 16. Declare objects such as a thief explicitly before comparing them in a statement.
 17. Translate “exactly N”, “at least N”, and “at most N” into `exactly N of ... == value`, `atleast N of ... == value`, and `atmost N of ... == value`.
+18. Translate “if ... then ...” with `=>` and “if and only if” with `<=>`; preserve parentheses around each proposition.
 
 ## Required response format
 

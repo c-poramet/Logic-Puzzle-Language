@@ -57,6 +57,14 @@ atmost 1 of A B C == beta
 
 The rule is checked against every candidate world and also participates in a first domain-propagation pass. The solver still keeps exhaustive search as a correctness fallback, while reporting propagation rounds and reductions in its result metadata.
 
+Statements also support three-valued negation, implication, and iff:
+
+```lpl
+A : not (A == beta)
+B : A == alpha => B == beta
+C : A == alpha <=> B == beta
+```
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

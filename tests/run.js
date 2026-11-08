@@ -81,4 +81,14 @@ assert.deepStrictEqual([...propagated.domains.x], ['alpha']);
 assert.deepStrictEqual([...propagated.domains.y], ['beta']);
 assert.strictEqual(propagated.contradiction, null);
 assert.ok(propagated.reductions > 0);
+
+const logicModel = parser.parse(`SETUP
+stater A B
+type alpha beta
+STATEMENTS
+A : A == alpha => B == beta
+B : not (A == beta)`);
+const logicValues = logicModel.statements.map(statement => solver.evaluate(statement.expr, { A: 'alpha', B: 'beta' }, logicModel, statement.subject));
+assert.deepStrictEqual(logicModel.statements.map(statement => statement.expr.kind), ['implies', 'not']);
+assert.deepStrictEqual(logicValues, [true, true]);
 console.log('LPL parser and solver tests passed.');

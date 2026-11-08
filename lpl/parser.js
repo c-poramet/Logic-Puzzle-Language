@@ -6,7 +6,7 @@
 
   function tokenize(text, line) {
     const tokens = [];
-    const pattern = /\s*(==|!=|\(|\)|:|,|[A-Za-z_][A-Za-z0-9_]*|\d+)/g;
+    const pattern = /\s*(<=>|=>|==|!=|\(|\)|:|,|[A-Za-z_][A-Za-z0-9_]*|\d+)/g;
     let match;
     let end = 0;
     while ((match = pattern.exec(text))) {
@@ -25,12 +25,16 @@
     const next = () => tokens[position++];
     const fail = message => { throw new ErrorType(message, line); };
     const primary = () => {
-      if (peek() === '(') { next(); const node = disjunction(); if (next() !== ')') fail('Expected ")"'); return node; }
+      if (peek() === '(') { next(); const node = implication(); if (next() !== ')') fail('Expected ")"'); return node; }
       const value = next();
       if (!value || keywords.has(value.toLowerCase()) || value === ')' || value === '==' || value === '!=') fail('Expected a name');
       return { kind: 'name', value };
     };
     const comparison = () => {
+      if (peek()?.toLowerCase() === 'not') {
+        next();
+        return { kind: 'not', value: peek() === '(' ? primary() : comparison() };
+      }
       const left = primary();
       const operator = next();
       if (operator !== '==' && operator !== '!=') fail('Expected "==" or "!="');
@@ -46,8 +50,16 @@
       while (peek()?.toLowerCase() === 'or') { next(); node = { kind: 'or', left: node, right: conjunction() }; }
       return node;
     };
+    const implication = () => {
+      const left = disjunction();
+      if (peek() === '=>' || peek() === '<=>') {
+        const operator = next();
+        return { kind: operator === '=>' ? 'implies' : 'iff', left, right: implication() };
+      }
+      return left;
+    };
     if (!tokens.length) fail('Statement cannot be blank');
-    const result = disjunction();
+    const result = implication();
     if (position < tokens.length) fail(`Unexpected "${peek()}"`);
     return result;
   }

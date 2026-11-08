@@ -56,8 +56,8 @@ C : A == beta or A == gamma
   function classify(token) {
     if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(token)) return 'syntax-section';
     if (/^(stater|type|threshold|find|solve|try|value|self|All)$/i.test(token)) return 'syntax-keyword';
-    if (/^(and|or)$/i.test(token)) return 'syntax-gate';
-    if (/^(==|!=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
+    if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
+    if (/^(<=>|=>|==|!=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
     return 'syntax-name';
   }
   function highlightLine(line) {
@@ -65,7 +65,7 @@ C : A == beta or A == gamma
     const code = commentAt < 0 ? line : line.slice(0, commentAt);
     const comment = commentAt < 0 ? '' : line.slice(commentAt);
     const parts = [];
-    const pattern = /==|!=|\(|\)|:|>|[A-Za-z_][A-Za-z0-9_]*/g;
+    const pattern = /<=>|=>|==|!=|\(|\)|:|>|[A-Za-z_][A-Za-z0-9_]*/g;
     let last = 0;
     let match;
     while ((match = pattern.exec(code))) {

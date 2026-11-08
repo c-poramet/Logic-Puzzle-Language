@@ -4,6 +4,13 @@
   const ErrorType = root.LPLRuntime?.Error || class extends Error {};
   const UNKNOWN = null;
   const UNASSIGNED = root.LPLConstraints?.UNASSIGNED || Symbol('lpl.unassigned');
+  const logic = root.LPLConstraints || {
+    and: (left, right) => left === false || right === false ? false : left === true && right === true ? true : UNKNOWN,
+    or: (left, right) => left === true || right === true ? true : left === false && right === false ? false : UNKNOWN,
+    not: value => value === UNKNOWN ? UNKNOWN : !value,
+    implies: (left, right) => left === false || right === true ? true : left === true && right === false ? false : UNKNOWN,
+    iff: (left, right) => left === UNKNOWN || right === UNKNOWN ? UNKNOWN : left === right
+  };
   const normalize = value => String(value).toLowerCase();
 
   function resolveName(name, model, subject) {
@@ -22,6 +29,7 @@
   }
 
   function evaluate(node, assignment, model, subject) {
+    if (node.kind === 'not') return logic.not(evaluate(node.value, assignment, model, subject));
     if (node.kind === 'name') return resolveName(node.value, model, subject);
     if (node.kind === 'compare') {
       const left = resolveName(node.left.value, model, subject);
@@ -38,8 +46,10 @@
     }
     const left = evaluate(node.left, assignment, model, subject);
     const right = evaluate(node.right, assignment, model, subject);
-    if (node.kind === 'and') return left === false || right === false ? false : left === true && right === true ? true : UNKNOWN;
-    if (node.kind === 'or') return left === true || right === true ? true : left === false && right === false ? false : UNKNOWN;
+    if (node.kind === 'and') return logic.and(left, right);
+    if (node.kind === 'or') return logic.or(left, right);
+    if (node.kind === 'implies') return logic.implies(left, right);
+    if (node.kind === 'iff') return logic.iff(left, right);
     return UNKNOWN;
   }
 

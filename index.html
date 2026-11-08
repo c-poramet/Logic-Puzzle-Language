@@ -13,7 +13,7 @@
 <main class="main"><div class="workspace">
 <section class="panel editor-panel">
   <div class="panel-head"><div><div class="eyebrow">Puzzle source</div><h1>Define the world.</h1></div><button class="text-button" id="clear" type="button">Clear</button></div>
-  <div class="editor"><div class="gutter" id="gutter" aria-hidden="true"></div><textarea id="source" spellcheck="false" aria-label="Logic Puzzle Language source"></textarea></div>
+  <div class="editor" id="editor"><div class="gutter" id="gutter" aria-hidden="true"></div><div class="editor-body"><div class="editor-bars" id="editor-bars" aria-hidden="true"></div><div class="highlight" aria-hidden="true"><div id="highlight-lines"></div></div><textarea id="source" spellcheck="false" aria-label="Logic Puzzle Language source"></textarea></div></div>
   <div class="status"><span id="position">Ln 1, Col 1</span><span id="message"></span></div>
   <button class="run" id="run" type="button">Update now <kbd>Ctrl+Enter</kbd></button>
   <div class="actions"><button class="secondary" id="example" type="button">Load example</button><button class="secondary" id="copy" type="button">Copy source</button></div>
@@ -21,6 +21,8 @@
 <section class="panel results-panel" id="results"><div class="empty"><span class="empty-kicker">SETUP / STATEMENTS / SOLVE</span><h2>Make a possibility space.</h2><p>Declare staters and types, write what each person says, then ask the engine to find the worlds that survive.</p><div class="syntax"><code>stater Aimee Bob Calvin</code><code>type alpha beta gamma</code><code>A : A == beta or A == gamma</code></div></div></section>
 </div></main>
 <footer class="footer">LPL is intentionally dependency-free and runs locally in your browser.</footer>
+<div class="autocomplete" id="autocomplete" hidden role="listbox"></div>
+<div class="quick-fixes" id="quick-fixes" hidden role="menu"></div>
 <script src="core/runtime.js"></script>
 <script src="lpl/parser.js"></script>
 <script src="lpl/solver.js"></script>

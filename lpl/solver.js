@@ -7,6 +7,7 @@
   const contextOps = root.LPLContexts || { shift: () => undefined };
   const statementOps = root.LPLStatements || { get: (model, id) => model.statementsById?.[id] || null, isAnonymous: subject => String(subject).trim() === '_' };
   const explanationOps = root.LPLExplanations || { create: () => ({ add: () => {}, list: () => [] }) };
+  const searchOps = root.LPLSearch || { orderVariables: variables => variables.slice() };
   const logic = root.LPLConstraints || {
     and: (left, right) => left === false || right === false ? false : left === true && right === true ? true : UNKNOWN,
     or: (left, right) => left === true || right === true ? true : left === false && right === false ? false : UNKNOWN,
@@ -90,9 +91,25 @@
     return false;
   }
 
+  function cardinalityCanStillSatisfy(rule, assignment, model) {
+    const values = rule.variables.map(name => {
+      const variable = resolveName(name, model, name);
+      if (Object.prototype.hasOwnProperty.call(assignment, variable)) return normalize(assignment[variable]) === normalize(rule.value);
+      const definition = model.variables?.find(item => item.name === variable);
+      return definition?.domain.some(value => normalize(value) === normalize(rule.value)) ? UNKNOWN : false;
+    });
+    return (root.LPLConstraints?.cardinalityPossible || ((items, amount, operator) => {
+      const yes = items.filter(value => value === true).length;
+      const possible = yes + items.filter(value => value === UNKNOWN).length;
+      return operator === 'exactly' ? yes <= amount && possible >= amount : operator === 'atleast' ? possible >= amount : yes <= amount;
+    }))(values, rule.amount, rule.operator);
+  }
+
   function solve(model) {
     const solutions = [];
     const explanations = explanationOps.create();
+    let searchNodes = 0;
+    let searchLeaves = 0;
     const assignment = {};
     const typeNames = model.types;
     const exactOneEach = model.staters.length === typeNames.length;
@@ -107,12 +124,19 @@
       explanations.add({ kind: 'propagation', line: 0, message: propagated.contradiction });
       return { model, solutions, count: 0, exactOneEach, statistics: propagated, explanations: explanations.list() };
     }
-    const variables = (model.variables || model.staters.map(name => ({ name, kind: 'stater', domain: typeNames }))).map(variable => ({
+    const variables = searchOps.orderVariables((model.variables || model.staters.map(name => ({ name, kind: 'stater', domain: typeNames }))).map(variable => ({
       ...variable,
       domain: propagated.domains[variable.name] ? [...propagated.domains[variable.name]] : variable.domain
-    }));
+    })));
     const visit = index => {
+      searchNodes++;
+      const failedPossibleRule = (model.cardinalityRules || []).find(rule => !cardinalityCanStillSatisfy(rule, assignment, model));
+      if (failedPossibleRule) {
+        explanations.add({ kind: 'cardinality', line: failedPossibleRule.line, message: `No remaining values can satisfy ${failedPossibleRule.operator} ${failedPossibleRule.amount} of ${failedPossibleRule.variables.join(', ')} == ${failedPossibleRule.value}.` });
+        return;
+      }
       if (index === variables.length) {
+        searchLeaves++;
         if (exactOneEach && typeNames.some(type => counts[type] !== 1)) {
           explanations.add({ kind: 'cardinality', line: 0, message: 'A world did not assign exactly one stater to each type.' });
           return;
@@ -148,7 +172,7 @@
       }
     };
     visit(0);
-    return { model, solutions, count: solutions.length, exactOneEach, statistics: propagated, explanations: explanations.list() };
+    return { model, solutions, count: solutions.length, exactOneEach, statistics: { ...propagated, searchNodes, searchLeaves, variableOrder: variables.map(variable => variable.name) }, explanations: explanations.list() };
   }
 
   function query(result, command) {

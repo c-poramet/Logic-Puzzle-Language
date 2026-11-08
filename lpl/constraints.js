@@ -41,8 +41,11 @@
     }
     throw new Error(`Unknown cardinality operator "${operator}"`);
   }
+  function cardinalityPossible(values, amount, operator) {
+    return cardinality(values, amount, operator) !== false;
+  }
 
-  const api = { UNKNOWN, UNASSIGNED, and, or, not, implies, iff, cardinality };
+  const api = { UNKNOWN, UNASSIGNED, and, or, not, implies, iff, cardinality, cardinalityPossible };
   root.LPLConstraints = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window === 'undefined' ? globalThis : window);

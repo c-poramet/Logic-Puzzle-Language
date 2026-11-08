@@ -7,7 +7,8 @@
     const model = result.model;
     const output = [];
     output.push(`<div class="stats"><div class="stat"><strong>${result.count}</strong><span>surviving worlds</span></div><div class="stat"><strong>${model.staters.length}</strong><span>staters</span></div><div class="stat"><strong>${model.statements.length}</strong><span>statements</span></div></div>`);
-    output.push(`<div class="result-head"><h2>Possibility space</h2><span class="note">${result.exactOneEach ? 'exactly one of each type' : 'no cardinality rule'}</span></div>`);
+    const statsNote = result.statistics ? `${result.statistics.searchLeaves || 0} leaves · ${result.statistics.searchNodes || 0} nodes` : '';
+    output.push(`<div class="result-head"><h2>Possibility space</h2><span class="note">${result.exactOneEach ? 'exactly one of each type' : 'no cardinality rule'}${statsNote ? ` · ${statsNote}` : ''}</span></div>`);
     commands.forEach((command, index) => {
       const count = command.name === 'try' ? command.count : result.count;
       output.push(`<div class="step"><div class="step-head"><span class="step-number">${index + 1}</span><span class="step-command">${esc(command.name)} ${esc(command.target)} ${esc(command.argument)}</span><span class="step-count">${count} left</span></div>`);

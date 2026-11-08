@@ -88,6 +88,8 @@ An anonymous statement can use `_` as its subject and/or a hole expression. Anon
 
 When candidate worlds are rejected, the result panel can expand **Why worlds were rejected** to show the constraint category, source line, and concise reason. Explanations are bounded so large searches do not overwhelm the browser.
 
+The solver now checks cardinality feasibility during search, orders variables by smallest remaining domain first, and reports branch statistics such as visited nodes and complete leaves. The exhaustive search fallback remains in place for correctness.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

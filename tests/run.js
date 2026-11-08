@@ -6,6 +6,7 @@ const constraints = require('../lpl/constraints.js');
 require('../lpl/contexts.js');
 require('../lpl/statements.js');
 require('../lpl/explanations.js');
+require('../lpl/search.js');
 const propagate = require('../lpl/propagate.js');
 const parser = require('../lpl/parser.js');
 const solver = require('../lpl/solver.js');
@@ -133,4 +134,15 @@ A : A == beta`);
 const contradictionResult = solver.solve(contradictionModel);
 assert.strictEqual(contradictionResult.count, 0);
 assert.ok(contradictionResult.explanations.some(entry => entry.kind === 'statement' && entry.line === 5));
+
+const searchModel = parser.parse(`SETUP
+stater A B
+type alpha beta gamma
+exactly 1 of A B == alpha
+STATEMENTS
+A : A == alpha
+B : B == alpha`);
+const searchResult = solver.solve(searchModel);
+assert.strictEqual(searchResult.statistics.searchLeaves, 4);
+assert.deepStrictEqual(searchResult.statistics.variableOrder, ['A', 'B']);
 console.log('LPL parser and solver tests passed.');

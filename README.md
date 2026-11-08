@@ -86,6 +86,8 @@ B : if 1: then A == beta
 
 An anonymous statement can use `_` as its subject and/or a hole expression. Anonymous statements are evaluated for value but do not inherit an alpha/beta type restriction yet.
 
+When candidate worlds are rejected, the result panel can expand **Why worlds were rejected** to show the constraint category, source line, and concise reason. Explanations are bounded so large searches do not overwhelm the browser.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

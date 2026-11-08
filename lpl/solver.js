@@ -6,6 +6,7 @@
   const UNASSIGNED = root.LPLConstraints?.UNASSIGNED || Symbol('lpl.unassigned');
   const contextOps = root.LPLContexts || { shift: () => undefined };
   const statementOps = root.LPLStatements || { get: (model, id) => model.statementsById?.[id] || null, isAnonymous: subject => String(subject).trim() === '_' };
+  const explanationOps = root.LPLExplanations || { create: () => ({ add: () => {}, list: () => [] }) };
   const logic = root.LPLConstraints || {
     and: (left, right) => left === false || right === false ? false : left === true && right === true ? true : UNKNOWN,
     or: (left, right) => left === true || right === true ? true : left === false && right === false ? false : UNKNOWN,
@@ -91,6 +92,7 @@
 
   function solve(model) {
     const solutions = [];
+    const explanations = explanationOps.create();
     const assignment = {};
     const typeNames = model.types;
     const exactOneEach = model.staters.length === typeNames.length;
@@ -101,17 +103,31 @@
       return key === normalize(subject) || subjects.get(key) === subject;
     });
     const propagated = root.LPLPropagate?.run(model) || { domains: {}, rounds: 0, reductions: 0, contradiction: null };
-    if (propagated.contradiction) return { model, solutions, count: 0, exactOneEach, statistics: propagated };
+    if (propagated.contradiction) {
+      explanations.add({ kind: 'propagation', line: 0, message: propagated.contradiction });
+      return { model, solutions, count: 0, exactOneEach, statistics: propagated, explanations: explanations.list() };
+    }
     const variables = (model.variables || model.staters.map(name => ({ name, kind: 'stater', domain: typeNames }))).map(variable => ({
       ...variable,
       domain: propagated.domains[variable.name] ? [...propagated.domains[variable.name]] : variable.domain
     }));
     const visit = index => {
       if (index === variables.length) {
-        if (exactOneEach && typeNames.some(type => counts[type] !== 1)) return;
-        if ((model.cardinalityRules || []).some(rule => !satisfiesCardinality(rule, assignment, model))) return;
+        if (exactOneEach && typeNames.some(type => counts[type] !== 1)) {
+          explanations.add({ kind: 'cardinality', line: 0, message: 'A world did not assign exactly one stater to each type.' });
+          return;
+        }
+        const failedRule = (model.cardinalityRules || []).find(rule => !satisfiesCardinality(rule, assignment, model));
+        if (failedRule) {
+          explanations.add({ kind: 'cardinality', line: failedRule.line, message: `${failedRule.operator} ${failedRule.amount} of ${failedRule.variables.join(', ')} must equal ${failedRule.value}.` });
+          return;
+        }
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
-        if (values.some(({ statement, value }) => !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value))) return;
+        const failedStatement = values.find(({ statement, value }) => !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value));
+        if (failedStatement) {
+          explanations.add({ kind: 'statement', line: failedStatement.statement.line, message: `${failedStatement.statement.subject}'s statement is incompatible with ${assignment[resolveName(failedStatement.statement.subject, model, failedStatement.statement.subject)]}.` });
+          return;
+        }
         solutions.push({ assignment: { ...assignment }, values });
         return;
       }
@@ -121,17 +137,18 @@
         assignment[variable.name] = value;
         if (variable.kind === 'stater') counts[value]++;
         const relevant = variable.kind === 'stater' ? statementFor(variable.name) : [];
-        const valid = relevant.every(statement => {
+        const failedPartial = relevant.find(statement => {
           const value = evaluate(statement.expr, assignment, model, variable.name);
-          return value === UNKNOWN || matchesType(assignment[variable.name], value);
+          return value !== UNKNOWN && !matchesType(assignment[variable.name], value);
         });
-        if (valid) visit(index + 1);
+        if (failedPartial) explanations.add({ kind: 'statement', line: failedPartial.line, message: `${failedPartial.subject}'s statement is incompatible with ${assignment[variable.name]}.` });
+        else visit(index + 1);
         if (variable.kind === 'stater') counts[value]--;
         delete assignment[variable.name];
       }
     };
     visit(0);
-    return { model, solutions, count: solutions.length, exactOneEach, statistics: propagated };
+    return { model, solutions, count: solutions.length, exactOneEach, statistics: propagated, explanations: explanations.list() };
   }
 
   function query(result, command) {

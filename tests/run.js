@@ -5,6 +5,7 @@ require('../lpl/model.js');
 const constraints = require('../lpl/constraints.js');
 require('../lpl/contexts.js');
 require('../lpl/statements.js');
+require('../lpl/explanations.js');
 const propagate = require('../lpl/propagate.js');
 const parser = require('../lpl/parser.js');
 const solver = require('../lpl/solver.js');
@@ -123,4 +124,13 @@ type alpha
 STATEMENTS
 _ : _`);
 assert.strictEqual(solver.solve(anonymousModel).count, 1);
+
+const contradictionModel = parser.parse(`SETUP
+stater A
+type alpha beta
+STATEMENTS
+A : A == beta`);
+const contradictionResult = solver.solve(contradictionModel);
+assert.strictEqual(contradictionResult.count, 0);
+assert.ok(contradictionResult.explanations.some(entry => entry.kind === 'statement' && entry.line === 5));
 console.log('LPL parser and solver tests passed.');

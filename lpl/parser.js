@@ -55,7 +55,7 @@
   function parse(source) {
     const lines = source.split(/\r?\n/);
     let section = '';
-    const model = { staters: [], types: [], valueVariables: [], statements: [], commands: [], options: {} };
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], statements: [], commands: [], options: {} };
     lines.forEach((raw, index) => {
       const line = index + 1;
       const text = raw.replace(/#.*/, '').trim();
@@ -73,6 +73,13 @@
           const values = match[2].split(/[\s,]+/).filter(Boolean);
           if (!values.length) throw new ErrorType(`Variable "${match[1]}" must have at least one value`, line);
           model.valueVariables.push({ name: match[1], kind: 'value', domain: values });
+          return;
+        }
+        match = text.match(/^(exactly|atleast|atmost)\s+(\d+)\s+of\s+(.+?)\s*==\s*([A-Za-z_][A-Za-z0-9_]*)$/i);
+        if (match) {
+          const variables = match[3].split(/[\s,]+/).filter(Boolean);
+          if (!variables.length) throw new ErrorType('A cardinality rule needs at least one variable', line);
+          model.cardinalityRules.push({ kind: 'cardinality', operator: match[1].toLowerCase(), amount: Number(match[2]), variables, value: match[4], line });
           return;
         }
         match = text.match(/^threshold\s*=\s*(\d+)$/i);

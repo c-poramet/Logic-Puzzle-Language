@@ -59,4 +59,16 @@ assert.deepStrictEqual(variableModel.variables.map(variable => variable.name), [
 assert.deepStrictEqual(variableModel.domains.thief, ['A', 'B']);
 assert.strictEqual(variableResult.count, 1);
 assert.strictEqual(variableResult.solutions[0].assignment.thief, 'A');
+
+const cardinalityModel = parser.parse(`SETUP
+stater A B
+type alpha beta gamma
+exactly 1 of A B == alpha
+STATEMENTS
+A : A == alpha
+B : B == alpha
+>find type All`);
+const cardinalityResult = solver.solve(cardinalityModel);
+assert.strictEqual(cardinalityModel.cardinalityRules[0].operator, 'exactly');
+assert.strictEqual(cardinalityResult.count, 4);
 console.log('LPL parser and solver tests passed.');

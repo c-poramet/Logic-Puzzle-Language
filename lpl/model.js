@@ -24,6 +24,7 @@
         source: 'implicit exact-one-of-each'
       });
     }
+    constraints.push(...(model.cardinalityRules || []).map(rule => ({ ...rule, source: `line ${rule.line}` })));
     return Object.assign(model, {
       variables,
       domains,

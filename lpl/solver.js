@@ -47,6 +47,18 @@
     return type === 'alpha' ? value === true : type === 'beta' ? value === false : true;
   }
 
+  function satisfiesCardinality(rule, assignment, model) {
+    const values = rule.variables.map(name => {
+      const variable = resolveName(name, model, name);
+      return normalize(assignment[variable]) === normalize(rule.value);
+    });
+    const matched = values.filter(Boolean).length;
+    if (rule.operator === 'exactly') return matched === rule.amount;
+    if (rule.operator === 'atleast') return matched >= rule.amount;
+    if (rule.operator === 'atmost') return matched <= rule.amount;
+    return false;
+  }
+
   function solve(model) {
     const solutions = [];
     const assignment = {};
@@ -62,6 +74,7 @@
     const visit = index => {
       if (index === variables.length) {
         if (exactOneEach && typeNames.some(type => counts[type] !== 1)) return;
+        if ((model.cardinalityRules || []).some(rule => !satisfiesCardinality(rule, assignment, model))) return;
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
         if (values.some(({ statement, value }) => !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value))) return;
         solutions.push({ assignment: { ...assignment }, values });

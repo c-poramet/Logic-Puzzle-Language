@@ -47,6 +47,16 @@ var thief in {Aimee, Bob, Calvin}
 
 They can be compared from statements, and their possible values are included in each surviving world. A variable that has not been assigned during partial search evaluates as `unknown`, never as its source name.
 
+Explicit cardinality rules are also supported:
+
+```lpl
+exactly 1 of A B C == alpha
+atleast 2 of A B C == gamma
+atmost 1 of A B C == beta
+```
+
+The rule is checked against every candidate world. Propagation-based pruning will be added next; the current implementation keeps the exhaustive fallback for correctness.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

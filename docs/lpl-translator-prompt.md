@@ -60,6 +60,7 @@ Supported commands include:
 14. Do not add a claim merely because it makes the puzzle solvable.
 15. Treat “exactly one of each type” as active when the program declares the same number of staters and types.
 16. Declare objects such as a thief explicitly before comparing them in a statement.
+17. Translate “exactly N”, “at least N”, and “at most N” into `exactly N of ... == value`, `atleast N of ... == value`, and `atmost N of ... == value`.
 
 ## Required response format
 

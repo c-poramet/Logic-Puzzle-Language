@@ -75,7 +75,12 @@
     return UNKNOWN;
   }
 
-  function matchesType(type, value) {
+  function matchesType(type, value, assignment = {}, model = {}) {
+    const policy = model.policies?.[normalize(type)];
+    if (policy) {
+      const state = Object.values(model.contexts || {}).map(context => assignment[context.name]).find(current => current != null && Object.prototype.hasOwnProperty.call(policy.states, normalize(current)));
+      return state == null ? true : policy.states[normalize(state)] === value;
+    }
     return type === 'alpha' ? value === true : type === 'beta' ? value === false : true;
   }
 
@@ -162,7 +167,8 @@
       const key = normalize(statement.subject);
       return key === normalize(subject) || subjects.get(key) === subject;
     });
-    const propagated = root.LPLPropagate?.run(model, evaluate) || { domains: {}, rounds: 0, reductions: 0, contradiction: null };
+    const compatible = (type, value, assignment = {}) => matchesType(type, value, assignment, model);
+    const propagated = root.LPLPropagate?.run(model, evaluate, compatible) || { domains: {}, rounds: 0, reductions: 0, contradiction: null };
     if (propagated.contradiction) {
       explanations.add({ kind: 'propagation', line: 0, message: propagated.contradiction });
       return { model, solutions, count: 0, exactOneEach, statistics: propagated, explanations: explanations.list() };
@@ -199,7 +205,7 @@
           return;
         }
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
-        const failedStatement = values.find(({ statement, value }) => statement.subject !== '?' && !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value));
+        const failedStatement = values.find(({ statement, value }) => statement.subject !== '?' && !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value, assignment, model));
         if (failedStatement) {
           explanations.add({ kind: 'statement', line: failedStatement.statement.line, message: `${failedStatement.statement.subject}'s statement is incompatible with ${assignment[resolveName(failedStatement.statement.subject, model, failedStatement.statement.subject)]}.` });
           return;
@@ -215,7 +221,7 @@
         const relevant = variable.kind === 'stater' ? statementFor(variable.name) : [];
         const failedPartial = relevant.find(statement => {
           const value = evaluate(statement.expr, assignment, model, variable.name);
-          return value !== UNKNOWN && !matchesType(assignment[variable.name], value);
+          return value !== UNKNOWN && !matchesType(assignment[variable.name], value, assignment, model);
         });
         if (failedPartial) explanations.add({ kind: 'statement', line: failedPartial.line, message: `${failedPartial.subject}'s statement is incompatible with ${assignment[variable.name]}.` });
         else visit(index + 1);

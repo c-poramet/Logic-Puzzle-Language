@@ -18,7 +18,7 @@ A : A == beta
 B : A == alpha
 C : A == beta or A == gamma
 >find type All`;
-  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'rule', 'constraint', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
+  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
@@ -55,7 +55,7 @@ C : A == beta or A == gamma
   }
   function classify(token) {
     if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(token)) return 'syntax-section';
-    if (/^(stater|type|var|rule|constraint|case|group|exactly|atleast|atmost|threshold|find|solve|try|value|self|if|elseif|else|then|end|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
+    if (/^(stater|type|var|rule|constraint|policy|case|group|exactly|atleast|atmost|threshold|find|solve|try|value|self|if|elseif|else|then|end|true|false|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
     if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
     if (/^(<=>|=>|==|!=|:=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
     return 'syntax-name';
@@ -86,7 +86,7 @@ C : A == beta or A == gamma
       if (!text) return;
       if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(text)) { mode = text.toUpperCase(); return; }
       if (mode === 'SETUP') {
-        if (/^stater\s+/i.test(text) || /^type\s+/i.test(text) || /^var\s+/i.test(text) || /^(?:rule|constraint)\s+\w+\s+(?:made\s+)?(?:a\s+)?(?:true|false)\s+statement$/i.test(text) || /^case\s+/i.test(text) || /^group\s+/i.test(text) || /^(?:exactly|atleast|atmost)\s+\d+\s+of\s+/i.test(text) || /^(?:if|elseif)\s+\w+\s+then$/i.test(text) || /^(?:else|end)$/i.test(text) || /^(?:[^:]+):=\s*[\w,\s]+$/i.test(text) || /^threshold\s*=\s*\d+$/i.test(text)) return;
+        if (/^stater\s+/i.test(text) || /^type\s+/i.test(text) || /^var\s+/i.test(text) || /^policy\s+\w+\s*:\s*$/i.test(text) || /^[A-Za-z_]\w*\s*=>\s*(?:true|false)$/i.test(text) || /^(?:rule|constraint)\s+\w+\s+(?:made\s+)?(?:a\s+)?(?:true|false)\s+statement$/i.test(text) || /^case\s+/i.test(text) || /^group\s+/i.test(text) || /^(?:exactly|atleast|atmost)\s+\d+\s+of\s+/i.test(text) || /^(?:if|elseif)\s+\w+\s+then$/i.test(text) || /^(?:else|end)$/i.test(text) || /^(?:[^:]+):=\s*[\w,\s]+$/i.test(text) || /^threshold\s*=\s*\d+$/i.test(text)) return;
         issues.push({ line: index + 1, message: 'Expected a supported SETUP declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }

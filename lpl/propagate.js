@@ -3,7 +3,7 @@
 (function (root) {
   const normalize = value => String(value).toLowerCase();
 
-  function run(model, evaluate) {
+  function run(model, evaluate, compatible) {
     const domains = Object.fromEntries((model.variables || []).map(variable => [variable.name, new Set(variable.domain)]));
     const rules = model.cardinalityRules || [];
     let reductions = 0;
@@ -30,7 +30,7 @@
       }
     };
     const fail = message => { contradiction = contradiction || message; };
-    const compatible = (type, value) => type === 'alpha' ? value === true : type === 'beta' ? value === false : true;
+    compatible = compatible || ((type, value) => type === 'alpha' ? value === true : type === 'beta' ? value === false : true);
     const namesIn = node => {
       if (!node) return [];
       if (node.kind === 'name' || node.kind === 'offset') return [node.name || node.value];

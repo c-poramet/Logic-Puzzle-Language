@@ -73,7 +73,8 @@
     const lines = source.split(/\r?\n/);
     let section = '';
     let activeQuestion = null;
-    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], entityRules: [], statements: [], questions: [], commands: [], options: {} };
+    let activePolicy = null;
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], entityRules: [], policies: {}, statements: [], questions: [], commands: [], options: {} };
     let activeRule = null;
     lines.forEach((raw, index) => {
       const line = index + 1;
@@ -91,6 +92,15 @@
       }
       if (indent === 0) activeQuestion = null;
       if (section === 'SETUP') {
+        const policyStart = text.match(/^policy\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/i);
+        if (policyStart) { activePolicy = { type: policyStart[1].toLowerCase(), states: {}, line }; model.policies[activePolicy.type] = activePolicy; return; }
+        if (activePolicy && indent > 0) {
+          const policyEntry = text.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=>\s*(true|false)$/i);
+          if (!policyEntry) throw new ErrorType('Policy entries must map a context value to true or false', line);
+          activePolicy.states[policyEntry[1].toLowerCase()] = policyEntry[2].toLowerCase() === 'true';
+          return;
+        }
+        if (indent === 0) activePolicy = null;
         let ruleMatch = text.match(/^if\s+([A-Za-z_][A-Za-z0-9_]*)\s+then$/i);
         if (ruleMatch) {
           activeRule = { branches: [{ condition: ruleMatch[1], assignments: [] }], line };

@@ -199,4 +199,20 @@ const entityResult = solver.solve(entityModel);
 assert.strictEqual(entityModel.entityRules[0].kind, 'entity-statement-truth');
 assert.strictEqual(entityResult.count, 2);
 assert.deepStrictEqual([...new Set(entityResult.solutions.map(solution => solution.assignment.thief))].sort(), ['Aimee', 'Bob']);
+
+const policyModel = parser.parse(`SETUP
+stater A
+type diurnal nocturnal
+case WAKE awake asleep
+policy diurnal:
+	awake => true
+	asleep => false
+policy nocturnal:
+	awake => false
+	asleep => true
+STATEMENTS
+A : A == diurnal`);
+const policyResult = solver.solve(policyModel);
+assert.strictEqual(policyResult.count, 2);
+assert.ok(policyResult.solutions.every(solution => solution.assignment.WAKE === 'awake'));
 console.log('LPL parser and solver tests passed.');

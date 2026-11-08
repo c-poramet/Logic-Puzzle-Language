@@ -42,6 +42,7 @@
       rules: (model.rules || []).map(rule => ({ ...rule, branches: rule.branches.map(branch => ({ ...branch, assignments: branch.assignments.map(assignment => ({ ...assignment })) })) })),
       questions: (model.questions || []).map(question => ({ ...question, answers: question.answers.map(answer => ({ ...answer })) })),
       entityRules: (model.entityRules || []).map(rule => ({ ...rule })),
+      policies: Object.fromEntries(Object.entries(model.policies || {}).map(([type, policy]) => [type, { ...policy, states: { ...policy.states } }])),
       statementsById,
       diagnostics: [],
       variable(name) {

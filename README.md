@@ -107,6 +107,23 @@ rule thief made a false statement
 
 This makes the muffin puzzle’s “the thief lied” condition executable. The rule requires the assigned entity to have at least one matching statement with the requested truth value.
 
+Types can define context-dependent truth policies:
+
+```lpl
+type diurnal nocturnal
+case WAKE awake asleep
+
+policy diurnal:
+	awake => true
+	asleep => false
+
+policy nocturnal:
+	awake => false
+	asleep => true
+```
+
+Policy types use the assigned finite context value to determine whether their statements must be true or false. This supports the diurnal/nocturnal example from the design.
+
 Statements can be numbered and referenced conditionally:
 
 ```lpl

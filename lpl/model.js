@@ -4,12 +4,13 @@
   const normalize = value => String(value).toLowerCase();
 
   function attach(model) {
-    const variables = model.staters.map(name => ({
+    const staterVariables = model.staters.map(name => ({
       name,
       kind: 'stater',
       domain: model.types.slice(),
       source: 'stater'
     }));
+    const variables = [...staterVariables, ...(model.valueVariables || []).map(variable => ({ ...variable, domain: variable.domain.slice(), source: 'var' }))];
     const domains = Object.fromEntries(variables.map(variable => [variable.name, variable.domain.slice()]));
     const statementsById = Object.fromEntries(model.statements.map(statement => [statement.id, statement]));
     const constraints = [];

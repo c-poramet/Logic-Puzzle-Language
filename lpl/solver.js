@@ -3,17 +3,20 @@
 (function (root) {
   const ErrorType = root.LPLRuntime?.Error || class extends Error {};
   const UNKNOWN = null;
+  const UNASSIGNED = root.LPLConstraints?.UNASSIGNED || Symbol('lpl.unassigned');
   const normalize = value => String(value).toLowerCase();
 
   function resolveName(name, model, subject) {
     const needle = normalize(name);
     if (needle === 'self') return subject;
+    const exactVariable = model.variables?.find(variable => normalize(variable.name) === needle);
+    if (exactVariable) return exactVariable.name;
     const exactStater = model.staters.find(value => normalize(value) === needle);
     if (exactStater) return exactStater;
     const exactType = model.types.find(value => normalize(value) === needle);
     if (exactType) return exactType;
-    const matches = model.staters.filter(value => normalize(value).startsWith(needle));
-    if (matches.length === 1) return matches[0];
+    const matches = (model.variables || model.staters.map(name => ({ name }))).filter(variable => normalize(variable.name).startsWith(needle));
+    if (matches.length === 1) return matches[0].name;
     if (matches.length > 1) throw new ErrorType(`Ambiguous name "${name}"`, 0);
     throw new ErrorType(`Unknown name "${name}"`, 0);
   }
@@ -23,8 +26,13 @@
     if (node.kind === 'compare') {
       const left = resolveName(node.left.value, model, subject);
       const right = resolveName(node.right.value, model, subject);
-      const leftValue = assignment[left] || left;
-      const rightValue = assignment[right] || right;
+      const leftVariable = model.variables?.find(variable => variable.name === left);
+      const rightVariable = model.variables?.find(variable => variable.name === right);
+      const leftIsDomainLiteral = rightVariable?.domain.some(value => normalize(value) === normalize(node.left.value));
+      const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(node.right.value));
+      const leftValue = leftIsDomainLiteral ? node.left.value : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : assignment[left] ?? left;
+      const rightValue = rightIsDomainLiteral ? node.right.value : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : assignment[right] ?? right;
+      if (leftValue === UNASSIGNED || rightValue === UNASSIGNED) return UNKNOWN;
       const equal = normalize(leftValue) === normalize(rightValue);
       return node.operator === '==' ? equal : !equal;
     }
@@ -50,27 +58,28 @@
       const key = normalize(statement.subject);
       return key === normalize(subject) || subjects.get(key) === subject;
     });
+    const variables = model.variables || model.staters.map(name => ({ name, kind: 'stater', domain: typeNames }));
     const visit = index => {
-      if (index === model.staters.length) {
+      if (index === variables.length) {
         if (exactOneEach && typeNames.some(type => counts[type] !== 1)) return;
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
         if (values.some(({ statement, value }) => !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value))) return;
         solutions.push({ assignment: { ...assignment }, values });
         return;
       }
-      const subject = model.staters[index];
-      for (const type of typeNames) {
-        if (exactOneEach && counts[type]) continue;
-        assignment[subject] = type;
-        counts[type]++;
-        const relevant = statementFor(subject);
+      const variable = variables[index];
+      for (const value of variable.domain) {
+        if (variable.kind === 'stater' && exactOneEach && counts[value]) continue;
+        assignment[variable.name] = value;
+        if (variable.kind === 'stater') counts[value]++;
+        const relevant = variable.kind === 'stater' ? statementFor(variable.name) : [];
         const valid = relevant.every(statement => {
-          const value = evaluate(statement.expr, assignment, model, subject);
-          return value === UNKNOWN || matchesType(type, value);
+          const value = evaluate(statement.expr, assignment, model, variable.name);
+          return value === UNKNOWN || matchesType(assignment[variable.name], value);
         });
         if (valid) visit(index + 1);
-        counts[type]--;
-        delete assignment[subject];
+        if (variable.kind === 'stater') counts[value]--;
+        delete assignment[variable.name];
       }
     };
     visit(0);

@@ -55,7 +55,7 @@
   function parse(source) {
     const lines = source.split(/\r?\n/);
     let section = '';
-    const model = { staters: [], types: [], statements: [], commands: [], options: {} };
+    const model = { staters: [], types: [], valueVariables: [], statements: [], commands: [], options: {} };
     lines.forEach((raw, index) => {
       const line = index + 1;
       const text = raw.replace(/#.*/, '').trim();
@@ -68,6 +68,13 @@
         if (match) { model.staters.push(...match[1].split(/[\s,]+/).filter(Boolean)); return; }
         match = text.match(/^type\s+(.+)$/i);
         if (match) { model.types.push(...match[1].split(/[\s,]+/).filter(Boolean).map(value => value.toLowerCase())); return; }
+        match = text.match(/^var\s+([A-Za-z_][A-Za-z0-9_]*)\s+in\s*\{([^}]*)\}$/i);
+        if (match) {
+          const values = match[2].split(/[\s,]+/).filter(Boolean);
+          if (!values.length) throw new ErrorType(`Variable "${match[1]}" must have at least one value`, line);
+          model.valueVariables.push({ name: match[1], kind: 'value', domain: values });
+          return;
+        }
         match = text.match(/^threshold\s*=\s*(\d+)$/i);
         if (match) { model.options.threshold = Math.max(1, Number(match[1])); return; }
         throw new ErrorType('Expected a stater, type, or threshold declaration', line);
@@ -88,6 +95,11 @@
     if (!model.statements.length) throw new ErrorType('No statements declared');
     if (new Set(model.staters.map(value => value.toLowerCase())).size !== model.staters.length) throw new ErrorType('Stater names must be unique');
     if (new Set(model.types).size !== model.types.length) throw new ErrorType('Type names must be unique');
+    const names = [...model.staters, ...model.valueVariables.map(variable => variable.name)].map(value => value.toLowerCase());
+    if (new Set(names).size !== names.length) throw new ErrorType('Variable names must be unique');
+    model.valueVariables.forEach(variable => {
+      if (new Set(variable.domain.map(value => value.toLowerCase())).size !== variable.domain.length) throw new ErrorType(`Values for "${variable.name}" must be unique`);
+    });
     return root.LPLModel ? root.LPLModel.attach(model) : model;
   }
 

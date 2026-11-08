@@ -10,6 +10,7 @@ Your job is to produce a precise, executable LPL program for the currently suppo
 SETUP
 stater <name> <name> ...
 type <type> <type> ...
+var <name> in {<value>, <value>, ...}
 
 STATEMENTS
 <subject> : <expression>
@@ -24,6 +25,7 @@ Supported expressions currently contain:
 - `==` and `!=`
 - `and` and `or`
 - parentheses
+- finite-domain variables declared with `var ... in {...}`
 
 Type semantics:
 
@@ -43,7 +45,7 @@ Supported commands include:
 ## Translation rules
 
 1. Extract every named person, role, type, object, and relevant fact before writing LPL.
-2. For the current implementation, model only stater types and propositions that can be expressed with the supported syntax above.
+2. For the current implementation, model stater types, finite-domain variables, and propositions that can be expressed with the supported syntax above.
 3. Preserve names exactly in `stater` declarations.
 4. Use a unique prefix only when it is unambiguous. Prefer full names in generated programs.
 5. Translate “truthful”, “always tells the truth”, or equivalent into `alpha` only when the puzzle explicitly defines that behavior.
@@ -57,6 +59,7 @@ Supported commands include:
 13. If the puzzle needs unsupported features, stop and report them instead of fabricating near-equivalent LPL.
 14. Do not add a claim merely because it makes the puzzle solvable.
 15. Treat “exactly one of each type” as active when the program declares the same number of staters and types.
+16. Declare objects such as a thief explicitly before comparing them in a statement.
 
 ## Required response format
 

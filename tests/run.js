@@ -46,4 +46,17 @@ Bob : B == gamma`);
 assert.throws(() => solver.solve(alias), /Ambiguous name/);
 
 assert.throws(() => parser.parse('SETUP\nstater A\nSTATEMENTS\nA : A == beta'), /No types declared/);
+
+const variableModel = parser.parse(`SETUP
+stater A
+type alpha
+var thief in {A, B}
+STATEMENTS
+A : thief == A
+>find value All`);
+const variableResult = solver.solve(variableModel);
+assert.deepStrictEqual(variableModel.variables.map(variable => variable.name), ['A', 'thief']);
+assert.deepStrictEqual(variableModel.domains.thief, ['A', 'B']);
+assert.strictEqual(variableResult.count, 1);
+assert.strictEqual(variableResult.solutions[0].assignment.thief, 'A');
 console.log('LPL parser and solver tests passed.');

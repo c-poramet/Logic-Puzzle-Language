@@ -39,6 +39,14 @@ Three-valued operations are centralized for the next solver stages:
 
 The normalized model and constraint helpers are additive implementation APIs; they are not yet additional source syntax.
 
+Finite-domain variables are now supported in `SETUP`:
+
+```lpl
+var thief in {Aimee, Bob, Calvin}
+```
+
+They can be compared from statements, and their possible values are included in each surviving world. A variable that has not been assigned during partial search evaluates as `unknown`, never as its source name.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

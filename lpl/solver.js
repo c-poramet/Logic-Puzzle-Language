@@ -275,7 +275,7 @@
     const all = !argument || /^all$/i.test(argument);
     const references = !all ? argument.split(/[\s,]+/).filter(Boolean).filter(name => /^\d+:$/.test(name)) : [];
     const names = all ? (result.model.variables || result.model.staters.map(name => ({ name }))).map(variable => variable.name) : argument.split(/[\s,]+/).filter(Boolean).filter(name => !/^\d+:$/.test(name)).map(name => resolveName(name, result.model, name));
-    const field = command.target === 'value' ? 'values' : 'assignment';
+    const field = ['value', 'possible', 'impossible'].includes(command.target) ? command.target : 'assignment';
     const choices = names.map(name => {
       const variable = result.model.variables?.find(item => item.name === name);
       const possible = [...new Set(result.solutions.map(solution => solution.assignment[name]).filter(value => value != null))];

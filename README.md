@@ -164,6 +164,13 @@ Statement truth values are queryable by numeric ID:
 
 The result reports `true`, `false`, and `unknown` as separate possible values.
 
+Explicit polarity queries are also accepted:
+
+```lpl
+>find possible DAY
+>find impossible thief
+```
+
 One subject can provide multiple statements separated by top-level colons:
 
 ```lpl

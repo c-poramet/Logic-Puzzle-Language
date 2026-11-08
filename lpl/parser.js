@@ -193,7 +193,7 @@
         throw new ErrorType('Expected a stater, type, or threshold declaration', line);
       }
       if (text.startsWith('>')) {
-        const match = text.match(/^>\s*(find|solve|try)\s+(type|value)?\s*(.*)$/i);
+        const match = text.match(/^>\s*(find|solve|try)\s+(type|value|possible|impossible)?\s*(.*)$/i);
         if (!match) throw new ErrorType('Unknown command', line);
         model.commands.push({ name: match[1].toLowerCase(), target: (match[2] || '').toLowerCase(), argument: match[3].trim(), line });
         return;

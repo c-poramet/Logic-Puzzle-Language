@@ -285,6 +285,17 @@ STATEMENTS
 const statementQueryResult = solver.solve(statementQueryModel);
 const statementQuery = solver.query(statementQueryResult, statementQueryModel.commands[0]);
 assert.deepStrictEqual(statementQuery.choices[0].possible.sort(), ['false', 'true']);
+const polarityModel = parser.parse(`SETUP
+stater A
+type alpha beta
+STATEMENTS
+1: A == alpha
+>find possible A
+>find impossible A`);
+const polarityResult = solver.solve(polarityModel);
+const polarityQueries = polarityModel.commands.map(command => solver.query(polarityResult, command));
+assert.strictEqual(polarityQueries[0].field, 'possible');
+assert.strictEqual(polarityQueries[1].field, 'impossible');
 
 const multipleModel = parser.parse(`SETUP
 stater A

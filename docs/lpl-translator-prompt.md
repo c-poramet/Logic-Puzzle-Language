@@ -73,9 +73,13 @@ Supported commands include:
 22. Use declarative context rules in `SETUP` when a group determines stater types: `if <group> then`, assignments with `:=`, optional `elseif`/`else`, and `end`.
 23. Use question blocks only when the puzzle explicitly restricts allowed answers. Write `? : <proposition>` followed by indented `_ : positive`, `_ : negative`, or `_ : blank` lines.
 24. Translate “the person/object assigned to X made a true/false statement” with a finite variable and `rule X made a true statement` or `rule X made a false statement`.
-25. Translate context-dependent types with `policy <type>:` followed by indented `<context-value> => true|false` entries. Do not use a policy unless the puzzle explicitly defines how that type behaves in each context.
+25. Translate context-dependent types with `policy <type>:` followed by indented `<context-value> => true|false` entries. The context name and values are ordinary puzzle-defined identifiers; do not hard-code names such as `WAKE` or `ASLEEP` in the engine. Do not use a policy unless the puzzle explicitly defines how that type behaves in each context.
 26. Translate “yesterday”, “tomorrow”, or equivalent finite-context references with `on <context> - 1` or `on <context> + 1`; use `wrap` only when the source explicitly describes a cyclic context.
 27. Use `>solve <id>: brute` only for a blank statement and report that the current implementation synthesizes bounded single comparisons only.
+
+For a puzzle where several people share one hidden finite state, declare one `case` variable and reference it from each statement. For example, use `case condition present absent` when the source says that the people were in the same one of two conditions. Do not create separate state variables unless the source says their states may differ.
+
+For a unique role holder, use one finite variable whose value is the person assigned to the role. For example, `var witchdoctor in {Ork, Bork}` represents exactly one witch doctor among those people, and `witchdoctor == self` means “I am the witch doctor.” Keep this role variable separate from the stater type declarations.
 
 ## Required response format
 
@@ -139,3 +143,29 @@ Validation:
 - All referenced names are declared.
 - All operators are supported.
 - The program contains the required sections and command.
+
+## Shared-state belief example
+
+The following uses neutral context names to show the general form. The context name is not special to the engine.
+
+```lpl
+SETUP
+stater Ork Bork
+type diurnal nocturnal
+var witchdoctor in {Ork, Bork}
+case condition present absent
+policy diurnal:
+	present => true
+	absent => false
+policy nocturnal:
+	present => false
+	absent => true
+
+STATEMENTS
+Ork : (self == diurnal and condition == present) => witchdoctor == Ork
+Bork : ((self == diurnal and condition == present) or (self == nocturnal and condition == absent)) => witchdoctor == Bork
+
+>find type All
+```
+
+This is a faithful encoding of the supplied Ork/Bork statements. The current solver reports no surviving world for these exact rules, so the translator must report that contradiction rather than inventing a witch doctor or changing the statement meaning.

@@ -26,7 +26,13 @@
     const next = () => tokens[position++];
     const fail = message => { throw new ErrorType(message, line); };
     const primary = () => {
-      if (peek() === '(') { next(); const node = implication(); if (next() !== ')') fail('Expected ")"'); return node; }
+      if (peek() === '(') {
+        next();
+        const node = implication();
+        if (next() !== ')') fail('Expected ")"');
+        node.grouped = true;
+        return node;
+      }
       if (peek()?.toLowerCase() === 'on') {
         next();
         let values = [];
@@ -55,6 +61,7 @@
       }
       const left = primary();
       if (left.kind === 'guard') return left;
+      if (left.grouped && !['name', 'offset'].includes(left.kind)) return left;
       const operator = next();
       if (operator !== '==' && operator !== '!=') fail('Expected "==" or "!="');
       return { kind: 'compare', operator, left, right: primary() };

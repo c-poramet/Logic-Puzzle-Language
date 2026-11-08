@@ -221,6 +221,25 @@ const policyResult = solver.solve(policyModel);
 assert.strictEqual(policyResult.count, 2);
 assert.ok(policyResult.solutions.every(solution => solution.assignment.WAKE === 'awake'));
 
+const conditionalBeliefModel = parser.parse(`SETUP
+stater Ork Bork
+type diurnal nocturnal
+var witchdoctor in {Ork, Bork}
+case condition present absent
+policy diurnal:
+	present => true
+	absent => false
+policy nocturnal:
+	present => false
+	absent => true
+STATEMENTS
+Ork : (self == diurnal and condition == present) => witchdoctor == Ork
+Bork : ((self == diurnal and condition == present) or (self == nocturnal and condition == absent)) => witchdoctor == Bork
+>find type All`);
+assert.deepStrictEqual(conditionalBeliefModel.variables.map(variable => variable.name), ['Ork', 'Bork', 'witchdoctor', 'condition']);
+assert.deepStrictEqual(conditionalBeliefModel.contexts[0].values, ['present', 'absent']);
+assert.strictEqual(solver.solve(conditionalBeliefModel).count, 0);
+
 const onModel = parser.parse(`SETUP
 stater L
 type alpha beta

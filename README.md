@@ -30,6 +30,131 @@ LPL does not require you to encode the story in one large formula. Give every na
 
 Short forms are readability conveniences, not different logic. Prefer full names while translating, then use `self` or a unique prefix when the meaning remains obvious. For example, `Aimee : self == beta` and `Aimee : Aimee == beta` mean the same thing.
 
+### Defaults: types, elements, and values
+
+LPL has a few built-in semantic conventions, but it does not invent the people, types, objects, or context values in your story. You must declare those explicitly.
+
+#### Built-in type meanings
+
+The names `alpha`, `beta`, and `gamma` have default truth behavior:
+
+| Type | Required statement result | Intuition |
+|---|---|---|
+| `alpha` | `true` | Truthful in the current evaluation context. |
+| `beta` | `false` | Lying in the current evaluation context. |
+| `gamma` | `true` or `false` | Unrestricted or ordinary. |
+
+These are semantic names, not automatically declared types. This program uses them:
+
+```lpl
+SETUP
+stater Aimee Bob
+type alpha beta
+
+STATEMENTS
+Aimee : self == beta
+Bob : self == alpha
+```
+
+This program does not use them:
+
+```lpl
+SETUP
+stater Aimee Bob
+type truthful liar
+
+STATEMENTS
+Aimee : self == liar
+Bob : self == truthful
+```
+
+`truthful` and `liar` are ordinary custom type names here. They do not automatically mean true and false. To give custom names truth behavior, either use `alpha` and `beta`, or define a context policy when the behavior depends on a case:
+
+```lpl
+SETUP
+stater Aimee Bob
+type truthful liar
+case situation ordinary
+
+policy truthful:
+	ordinary => true
+
+policy liar:
+	ordinary => false
+
+STATEMENTS
+Aimee : self == liar
+Bob : self == truthful
+```
+
+A type policy takes precedence over the ordinary `alpha`/`beta`/`gamma` fallback for that type. Policy values are looked up from declared `case` values. If a custom type has no policy, its statements are unrestricted like `gamma`; the engine does not infer meaning from the English name.
+
+#### Default type distribution
+
+When the number of declared staters equals the number of declared types, LPL assumes one stater receives each type. For example:
+
+```lpl
+SETUP
+stater Aimee Bob Calvin
+type alpha beta gamma
+```
+
+means the search considers permutations such as:
+
+| Aimee | Bob | Calvin |
+|---|---|---|
+| `alpha` | `beta` | `gamma` |
+| `beta` | `gamma` | `alpha` |
+| `gamma` | `alpha` | `beta` |
+
+It does not consider `alpha, alpha, beta` or `gamma, gamma, gamma` in that default mode. This is a distribution rule, separate from the meaning of the types.
+
+If the story only says that every person is one of the listed types and allows several people to share a type, write:
+
+```lpl
+SETUP
+stater Ork Bork
+type diurnal nocturnal
+types may repeat
+```
+
+Now `diurnal, diurnal`, `diurnal, nocturnal`, `nocturnal, diurnal`, and `nocturnal, nocturnal` are all possible until the statements remove some of them. Use this whenever the source does not explicitly say “one of each,” “exactly one,” or an equivalent distribution.
+
+#### What is and is not automatically declared
+
+| Element | Default behavior | What to write |
+|---|---|---|
+| Stater/person | None are created automatically. | `stater Aimee Bob` |
+| Type | No type list is assumed. | `type alpha beta` |
+| `alpha`, `beta`, `gamma` | Have built-in truth meanings only when declared in `type`. | `type alpha beta gamma` |
+| Custom type | Has no inferred truth meaning. Without a policy, it is unrestricted. | `type diurnal nocturnal` plus policies when needed |
+| Stater domain | Every stater receives one declared type. | Declare the type list with `type`. |
+| Finite variable | No variable exists until declared. | `var thief in {Aimee, Bob}` |
+| Variable domain | Contains exactly the listed values; no values are added. | `var role in {thief, witness}` |
+| Case/context | No context exists until declared. | `case state awake asleep` |
+| Case domain | Contains exactly the listed context values, including expanded values such as weekdays. | `case day Mon Tue Wed` |
+| `self` | Resolves to the current statement subject. | `Aimee : self == beta` |
+| Unknown | Appears during partial search or for an unresolved question; it is not a type. | `? : Aimee == alpha` with `_ : blank` |
+| Command target `All` | Means show the full surviving possibility space. | `>find type All` |
+
+There is no default “awake,” “asleep,” “truthful,” “liar,” “witch doctor,” or “ordinary” value. Those are story concepts and must be represented with declared types, variables, cases, groups, or policies.
+
+#### Default expression behavior
+
+Expressions are evaluated against a complete candidate world. The logical operators use three-valued behavior while the solver is still building a world:
+
+| Expression | Result |
+|---|---|
+| `true and unknown` | `unknown` |
+| `false and unknown` | `false` |
+| `true or unknown` | `true` |
+| `false or unknown` | `unknown` |
+| `false => unknown` | `true` |
+| `true => unknown` | `unknown` |
+| `not unknown` | `unknown` |
+
+At a completed world, a stater's expression must match its type's required truth result. `unknown` therefore means “not determined yet,” not “the statement may remain unknown forever.” A question can explicitly allow `blank`; an ordinary alpha or beta statement cannot use unknown as a completed answer.
+
 ### 1. Start with the smallest puzzle
 
 Plain language:

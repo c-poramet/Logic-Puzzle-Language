@@ -196,12 +196,14 @@
   function checkGoals(tuple, baseWorlds, subjects, goals) {
     const jointGoals = goals.filter(goal => goal.kind === 'joint-possible-identities');
     const aloneGoals = goals.filter(goal => goal.kind === 'each-alone-insufficient');
+    const proofGoals = goals.filter(goal => goal.kind === 'prove-cardinality');
     const fixedGoals = goals.filter(goal => goal.kind === 'identity-fixed');
     const ambiguousGoals = goals.filter(goal => goal.kind === 'identity-ambiguous');
     const jointProjection = jointGoals[0] ? goalProjection(jointGoals[0], goals) : 'god';
     const possibleIdentities = identitySet(tuple.jointWorlds, jointProjection, subjects);
     const checks = {
       cardinality: true,
+      provedCardinality: proofGoals.every(goal => tuple.jointWorlds.length > 0 && tuple.jointWorlds.every(world => satisfiesCardinality(world, goal))),
       jointPossibleIdentities: jointGoals.every(goal => identitySet(tuple.jointWorlds, goalProjection(goal, goals), subjects).length === goal.amount),
       eachAloneInsufficient: aloneGoals.every(() => tuple.singleWorlds.every(worlds => identitySet(worlds, jointProjection, subjects).length > 1)),
       fixedIdentities: fixedGoals.every(goal => tuple.jointWorlds.length > 0 && tuple.jointWorlds.every(world => normalize(world.assignment[goal.subject]) === normalize(goal.value))),

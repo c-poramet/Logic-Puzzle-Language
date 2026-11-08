@@ -93,6 +93,7 @@ Supported commands include:
 32. Translate “B remains unknown” or “B’s type is unresolved” in a `GOALS` section as `B remains unknown`; this means B must retain more than one possible type after synthesis.
 33. Use `using k-map` on a `>generate statements for ...` command when compact boolean expressions are preferred. `--kmap` and `--method kmap` are equivalent aliases.
 34. Translate “at least N people are thieves” and “at most N people are thieves” in a `GOALS` section as `at least N of ... is a thief` and `at most N of ... is a thief`. The compact forms `atleast` and `atmost` are equivalent.
+35. Use `together prove exactly N of ... is a role` when the generated statements must establish the cardinality conclusion. Use `exactly N of ... is a role` without `prove` only when that cardinality is a premise that filters the starting worlds.
 
 For a puzzle where several people share one hidden finite state, declare one `case` variable and reference it from each statement. For example, use `case condition present absent` when the source says that the people were in the same one of two conditions. Do not create separate state variables unless the source says their states may differ.
 

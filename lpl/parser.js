@@ -258,6 +258,11 @@
           model.goals.push({ kind: 'identity-ambiguous', subject: goalMatch[1], line });
           return;
         }
+        goalMatch = text.match(/^(?:together|jointly)\s+prove\s+(exactly|atleast|atmost|at\s+least|at\s+most)\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
+        if (goalMatch) {
+          model.goals.push({ kind: 'prove-cardinality', operator: goalMatch[1].replace(/\s+/g, '').toLowerCase(), amount: Number(goalMatch[2]), variables: goalMatch[3].split(/[\s,]+/).filter(Boolean), value: goalMatch[4], line });
+          return;
+        }
         goalMatch = text.match(/^(exactly|atleast|atmost|at\s+least|at\s+most)\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
         if (goalMatch) {
           model.goals.push({ kind: 'cardinality', operator: goalMatch[1].replace(/\s+/g, '').toLowerCase(), amount: Number(goalMatch[2]), variables: goalMatch[3].split(/[\s,]+/).filter(Boolean), value: goalMatch[4], line });
@@ -330,7 +335,7 @@
     const prefix = (match ? match[0] : '').toLowerCase();
     const values = new Map();
     const add = (value, detail) => { if (!value || (prefix && !value.toLowerCase().startsWith(prefix))) return; values.set(`${value}\0${detail}`, { value, detail }); };
-    ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'using', 'kmap', 'k-map', 'together', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
+    ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'using', 'kmap', 'k-map', 'together', 'jointly', 'prove', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
     const lines = source.split(/\r?\n/);
     lines.forEach(line => {
       let found = line.match(/^\s*stater\s+(.+)$/i);

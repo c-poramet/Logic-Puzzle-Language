@@ -263,7 +263,7 @@ C : A == beta or A == gamma
     if (/^(SETUP|STATEMENTS|SOLVE|GOALS)$/i.test(token)) return 'syntax-section';
     if (/^(stater|type|var|role|policy|case|group|rule|constraint|threshold)$/i.test(token)) return 'syntax-declaration';
     if (/^(find|solve|try|generate|using|kmap|k-map)$/i.test(token)) return 'syntax-command';
-    if (/^(together|jointly|leave|possible|identities|each|alone|insufficient|unknown|definitely|remains|exactly|atleast|atmost)$/i.test(token)) return 'syntax-goal';
+    if (/^(together|jointly|prove|leave|possible|identities|each|alone|insufficient|unknown|definitely|remains|exactly|atleast|atmost)$/i.test(token)) return 'syntax-goal';
     if (/^(may|repeat|if|elseif|else|then|end|on|wrap)$/i.test(token)) return 'syntax-structural';
     if (/^(true|false|positive|negative|blank|alpha|beta|gamma)$/i.test(token)) return 'syntax-literal';
     if (/^self$/i.test(token)) return 'syntax-self';
@@ -303,7 +303,7 @@ C : A == beta or A == gamma
         return;
       }
       if (mode === 'GOALS') {
-        if (/^(?:generate\s+(?:\d+\s+)?statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|(?:exactly|atleast|atmost|at\s+least|at\s+most)\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
+        if (/^(?:generate\s+(?:\d+\s+)?statements?\s+for|(?:together|jointly)\s+(?:prove|leave)\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|(?:exactly|atleast|atmost|at\s+least|at\s+most)\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
         issues.push({ line: index + 1, message: 'Expected a supported GOALS declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
@@ -412,6 +412,8 @@ C : A == beta or A == gamma
     if (match) return `Asks LPL to derive ${match[1] ? `${match[1]} statements` : 'one statement for each'} for ${match[2].trim()}${/k-?map|--kmap/i.test(line) ? ' using compact Karnaugh-map-style boolean minimization' : ''}.`;
     match = line.match(/^(?:together|jointly)\s+leave\s+exactly\s+(\d+)\s+possible\s+(.+?)\s+identit(?:y|ies)$/i);
     if (match) return `Together, the generated statements must leave exactly ${match[1]} possible ${match[2].replace(/^the\s+/i, '').trim()} identities.`;
+    match = line.match(/^(?:together|jointly)\s+prove\s+(exactly|atleast|atmost|at\s+least|at\s+most)\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
+    if (match) return `Requires the generated statements together to prove ${match[1]} ${match[2]} of ${match[3]} is ${match[4]}.`;
     match = line.match(/^each\s+statement\s+alone\s+(?:leaves\s+(?:the\s+)?(.+?)\s+identit(?:y|ies)\s+unknown|is\s+insufficient)$/i);
     if (match) return match[1] ? `Each generated statement alone must leave the ${match[1].replace(/^the\s+/i, '').trim()} identity unresolved, with more than one possibility.` : 'Each generated statement alone must leave the requested identity unresolved, with more than one possibility.';
     match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+is\s+(?:definitely\s+)?a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);

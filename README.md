@@ -619,6 +619,17 @@ B remains unknown
 
 `A is definitely a thief` requires every surviving world to assign `thief` to A. `B remains unknown` requires B to retain more than one possible type. These goals are evaluated after the generated statements are applied.
 
+Use `together prove ...` when the statements must establish a conclusion rather than receive it as a premise:
+
+```lpl
+GOALS
+generate statements for A B
+together prove exactly 1 of A B is a god
+together leave exactly 2 possible god identities
+```
+
+By contrast, `exactly 1 of A B is a god` filters the starting worlds before synthesis. It says the puzzle already guarantees exactly one god; it does not require the generated statements to prove that fact. This distinction matters: a candidate can be valid under the premise while failing to establish the conclusion.
+
 The equivalent role policy spellings are `role god is truthful`, `role demon is lying`, `policy god says true`, and `policy demon says false`. The existing context form, `policy type:` followed by context values, keeps its original meaning.
 
 Generation is deliberately bounded and deterministic. Search limits prevent a large expression space from freezing the browser; when a limit is reached, the result is marked as truncated and is not a proof that no other statement exists. Existing `>solve <id>: brute` behavior remains available for one blank statement.

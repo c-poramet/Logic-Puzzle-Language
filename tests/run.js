@@ -358,6 +358,20 @@ assert.deepStrictEqual(rangedGoalModel.goals.slice(1).map(goal => ({ operator: g
 const rangedGoalQuery = solver.query(solver.solve(rangedGoalModel), rangedGoalModel.commands[0]);
 assert.ok(rangedGoalQuery.synthesis.baseWorlds > 0);
 
+const proofGoalModel = parser.parse(`SETUP
+stater A B
+type alpha beta
+types may repeat
+GOALS
+generate statements for A B
+together prove exactly 1 of A B is a alpha
+SOLVE
+>generate statements for A B`);
+assert.strictEqual(proofGoalModel.goals[1].kind, 'prove-cardinality');
+const proofGoalQuery = solver.query(solver.solve(proofGoalModel), proofGoalModel.commands[0]);
+assert.ok(proofGoalQuery.synthesis.tuples.length > 0);
+assert.strictEqual(proofGoalQuery.synthesis.tuples[0].checks.provedCardinality, true);
+
 const kMapModel = parser.parse(`SETUP
 stater A B
 type god knight demon knave

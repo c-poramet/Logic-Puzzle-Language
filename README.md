@@ -147,6 +147,15 @@ The solver now checks cardinality feasibility during search, orders variables by
 
 Propagation also checks stater statements against their finite domains. A type is removed before search when no compatible completion can make that statement satisfy its alpha/beta rule; larger expression supports are skipped when their local completion space exceeds the bounded propagation budget.
 
+Queries can focus the result on a particular variable or context:
+
+```lpl
+>find value thief
+>solve DAY
+```
+
+The result shows possible values and values eliminated from the surviving worlds. `All` keeps the full-world listing and assignment table.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

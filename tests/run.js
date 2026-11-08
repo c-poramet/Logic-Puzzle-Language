@@ -199,6 +199,11 @@ const entityResult = solver.solve(entityModel);
 assert.strictEqual(entityModel.entityRules[0].kind, 'entity-statement-truth');
 assert.strictEqual(entityResult.count, 2);
 assert.deepStrictEqual([...new Set(entityResult.solutions.map(solution => solution.assignment.thief))].sort(), ['Aimee', 'Bob']);
+entityModel.commands.push({ name: 'find', target: 'value', argument: 'thief', line: 1 });
+entityModel.commands.push({ name: 'try', target: '', argument: 'Aimee := alpha', line: 1 });
+const entityQueries = entityModel.commands.map(command => solver.query(entityResult, command));
+assert.deepStrictEqual(entityQueries[0].choices[0].possible.sort(), ['Aimee', 'Bob']);
+assert.strictEqual(entityQueries[1].count, 0);
 
 const policyModel = parser.parse(`SETUP
 stater A
@@ -227,9 +232,13 @@ else
 L := alpha
 end
 STATEMENTS
-L : L == beta on DAY - 1`);
+L : L == beta on DAY - 1
+>solve DAY`);
 const onExpression = onModel.statements[0].expr;
 assert.strictEqual(onExpression.kind, 'at');
 assert.strictEqual(solver.evaluate(onExpression, { L: 'beta', DAY: 'Mon' }, onModel, 'L'), false);
 assert.strictEqual(solver.evaluate(onExpression, { L: 'beta', DAY: 'Tue' }, onModel, 'L'), true);
+const dayQuery = solver.query(solver.solve(onModel), onModel.commands[0]);
+assert.strictEqual(dayQuery.choices[0].name, 'DAY');
+assert.ok(dayQuery.choices[0].possible.length > 0);
 console.log('LPL parser and solver tests passed.');

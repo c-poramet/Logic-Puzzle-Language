@@ -259,7 +259,6 @@
 
   function query(result, command) {
     const argument = command.argument;
-    const names = argument && !/^all$/i.test(argument) ? argument.split(/[\s,]+/).filter(Boolean).map(name => resolveName(name, result.model, name)) : result.model.staters;
     if (command.name === 'try') {
       const match = argument.match(/^([^:=]+)\s*:=\s*([A-Za-z_][A-Za-z0-9_]*)$/);
       if (!match) throw new ErrorType('Try expects "Stater := type"', command.line);
@@ -267,8 +266,16 @@
       const type = normalize(match[2]);
       return { ...command, count: result.solutions.filter(solution => normalize(solution.assignment[stater]) === type).length };
     }
+    const all = !argument || /^all$/i.test(argument);
+    const names = all ? (result.model.variables || result.model.staters.map(name => ({ name }))).map(variable => variable.name) : argument.split(/[\s,]+/).filter(Boolean).map(name => resolveName(name, result.model, name));
     const field = command.target === 'value' ? 'values' : 'assignment';
-    return { ...command, names, field };
+    const choices = names.map(name => {
+      const variable = result.model.variables?.find(item => item.name === name);
+      const possible = [...new Set(result.solutions.map(solution => solution.assignment[name]).filter(value => value != null))];
+      const impossible = variable ? variable.domain.filter(value => !possible.some(candidate => normalize(candidate) === normalize(value))) : [];
+      return { name, possible, impossible };
+    });
+    return { ...command, names, field, all, choices };
   }
 
   const api = { evaluate, solve, query, UNKNOWN };

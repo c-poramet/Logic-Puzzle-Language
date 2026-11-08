@@ -22,11 +22,36 @@ C : A == beta or A == gamma
 
 The result panel shows the surviving worlds, staged command results, and an assignment table. Source and editor state are local to the browser; no server is required.
 
+## Architecture status
+
+The engine is being expanded underneath this syntax rather than replaced. The current parser now exposes an additive normalized model with finite-domain stater variables, domain maps, statement lookup, context slots, diagnostics, and an internal exact-one-of-each constraint. The existing exhaustive solver and result shape remain the compatibility path while propagation and broader constraints are added.
+
+Three-valued operations are centralized for the next solver stages:
+
+| Operation | Result behavior |
+|---|---|
+| `true and unknown` | `unknown` |
+| `false and unknown` | `false` |
+| `false or unknown` | `unknown` |
+| `true or unknown` | `true` |
+| `false implies unknown` | `true` |
+| `true implies unknown` | `unknown` |
+
+The normalized model and constraint helpers are additive implementation APIs; they are not yet additional source syntax.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.
 - `>find value All` is accepted as the value-query spelling for the same possibility set.
 - `>try Aimee := alpha` tests a proposed type against the surviving worlds.
+
+## Translator prompt
+
+[docs/lpl-translator-prompt.md](docs/lpl-translator-prompt.md) is a strict prompt for translating plain-language puzzles into the currently supported LPL subset. It requires the translator to return executable LPL, assumptions, unsupported requirements, and validation notes instead of inventing future syntax.
+
+## Expansion roadmap
+
+The next implementation layers are general finite-domain variables, cardinality constraints, propagation/search, case and time contexts, statement references, blank-statement synthesis, and source-linked explanations. Planned syntax is documented as unsupported until its parser, solver, tests, and editor support exist.
 
 ## Development
 
@@ -36,4 +61,4 @@ Run the dependency-free tests with:
 node tests/run.js
 ```
 
-Temporal cases, `case`/`group` declarations, question blocks, partial brute-force statements, and richer unknown propagation are the next language layers. The parser and evaluator are kept separate so those additions can extend the current browser-first architecture without changing the UI contract.
+Temporal cases, `case`/`group` declarations, question blocks, partial brute-force statements, and richer unknown propagation are not implemented yet. The parser, normalized model, constraint helpers, and evaluator are kept separate so those additions can extend the current browser-first architecture without changing the UI contract.

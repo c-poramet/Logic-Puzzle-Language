@@ -88,7 +88,7 @@
     if (!model.statements.length) throw new ErrorType('No statements declared');
     if (new Set(model.staters.map(value => value.toLowerCase())).size !== model.staters.length) throw new ErrorType('Stater names must be unique');
     if (new Set(model.types).size !== model.types.length) throw new ErrorType('Type names must be unique');
-    return model;
+    return root.LPLModel ? root.LPLModel.attach(model) : model;
   }
 
   const api = { tokenize, expression, parse };

@@ -215,4 +215,21 @@ A : A == diurnal`);
 const policyResult = solver.solve(policyModel);
 assert.strictEqual(policyResult.count, 2);
 assert.ok(policyResult.solutions.every(solution => solution.assignment.WAKE === 'awake'));
+
+const onModel = parser.parse(`SETUP
+stater L
+type alpha beta
+case DAY Sun Mon Tue ... wrap
+group L_days = {Mon, Tue, Wed}
+if L_days then
+L := beta
+else
+L := alpha
+end
+STATEMENTS
+L : L == beta on DAY - 1`);
+const onExpression = onModel.statements[0].expr;
+assert.strictEqual(onExpression.kind, 'at');
+assert.strictEqual(solver.evaluate(onExpression, { L: 'beta', DAY: 'Mon' }, onModel, 'L'), false);
+assert.strictEqual(solver.evaluate(onExpression, { L: 'beta', DAY: 'Tue' }, onModel, 'L'), true);
 console.log('LPL parser and solver tests passed.');

@@ -32,7 +32,31 @@
     throw new ErrorType(`Unknown name "${name}"`, 0);
   }
 
+  function effectiveValue(name, assignment, model) {
+    const base = assignment[name];
+    for (const rule of model.rules || []) {
+      let selected = null;
+      for (const branch of rule.branches) {
+        if (branch.condition == null) { selected = branch; break; }
+        const group = Object.values(model.groups || {}).find(item => normalize(item.name) === normalize(branch.condition));
+        const context = (model.contexts || []).find(item => group && group.values.some(value => normalize(value) === normalize(assignment[item.name])));
+        if (context) { selected = branch; break; }
+      }
+      const override = selected?.assignments.find(item => normalize(resolveName(item.name, model, item.name)) === normalize(name));
+      if (override) return override.value;
+    }
+    return base;
+  }
+
   function evaluate(node, assignment, model, subject, seen = new Set()) {
+    if (node.kind === 'at') {
+      const context = model.contexts?.find(item => normalize(item.name) === normalize(node.context));
+      const current = context && assignment[context.name];
+      if (!context || current == null) return UNKNOWN;
+      const shifted = contextOps.shift(context, current, node.amount);
+      if (shifted == null) return UNKNOWN;
+      return evaluate(node.value, { ...assignment, [context.name]: shifted }, model, subject, seen);
+    }
     if (node.kind === 'hole') return UNKNOWN;
     if (node.kind === 'statementRef') {
       if (seen.has(node.id)) return UNKNOWN;
@@ -56,10 +80,10 @@
       const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw));
       const leftValue = node.left.kind === 'offset'
         ? (() => { const context = model.contexts?.find(item => normalize(item.name) === normalize(leftRaw)); const current = assignment[context?.name]; return context && current !== undefined ? contextOps.shift(context, current, node.left.amount) : UNASSIGNED; })()
-        : leftIsDomainLiteral ? leftRaw : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : assignment[left] ?? left;
+        : leftIsDomainLiteral ? leftRaw : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : effectiveValue(left, assignment, model) ?? left;
       const rightValue = node.right.kind === 'offset'
         ? (() => { const context = model.contexts?.find(item => normalize(item.name) === normalize(rightRaw)); const current = assignment[context?.name]; return context && current !== undefined ? contextOps.shift(context, current, node.right.amount) : UNASSIGNED; })()
-        : rightIsDomainLiteral ? rightRaw : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : assignment[right] ?? right;
+        : rightIsDomainLiteral ? rightRaw : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : effectiveValue(right, assignment, model) ?? right;
       if (leftValue === UNASSIGNED || rightValue === UNASSIGNED) return UNKNOWN;
       if (rightGroup) return rightGroup.values.some(value => normalize(value) === normalize(leftValue));
       if (leftGroup) return leftGroup.values.some(value => normalize(value) === normalize(rightValue));

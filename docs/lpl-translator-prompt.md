@@ -74,6 +74,7 @@ Supported commands include:
 23. Use question blocks only when the puzzle explicitly restricts allowed answers. Write `? : <proposition>` followed by indented `_ : positive`, `_ : negative`, or `_ : blank` lines.
 24. Translate “the person/object assigned to X made a true/false statement” with a finite variable and `rule X made a true statement` or `rule X made a false statement`.
 25. Translate context-dependent types with `policy <type>:` followed by indented `<context-value> => true|false` entries. Do not use a policy unless the puzzle explicitly defines how that type behaves in each context.
+26. Translate “yesterday”, “tomorrow”, or equivalent finite-context references with `on <context> - 1` or `on <context> + 1`; use `wrap` only when the source explicitly describes a cyclic context.
 
 ## Required response format
 

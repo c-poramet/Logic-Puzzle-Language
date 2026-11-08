@@ -64,7 +64,20 @@
       return left;
     };
     if (!tokens.length) fail('Statement cannot be blank');
-    const result = implication();
+    let result = implication();
+    if (peek()?.toLowerCase() === 'on') {
+      next();
+      const context = next();
+      if (!context) fail('Expected a context after "on"');
+      let amount = 0;
+      if (peek() === '+' || peek() === '-') {
+        const sign = next();
+        const digits = next();
+        if (!/^\d+$/.test(digits || '')) fail('Expected an integer context offset');
+        amount = Number(`${sign}${digits}`);
+      }
+      result = { kind: 'at', context, amount, value: result };
+    }
     if (position < tokens.length) fail(`Unexpected "${peek()}"`);
     return result;
   }

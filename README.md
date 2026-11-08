@@ -124,6 +124,14 @@ policy nocturnal:
 
 Policy types use the assigned finite context value to determine whether their statements must be true or false. This supports the diurnal/nocturnal example from the design.
 
+Statements can be evaluated in a shifted context:
+
+```lpl
+L : L == beta on DAY - 1
+```
+
+The inner proposition is evaluated with `DAY` shifted before rules and comparisons are applied. Wrapped contexts support both positive and negative offsets.
+
 Statements can be numbered and referenced conditionally:
 
 ```lpl

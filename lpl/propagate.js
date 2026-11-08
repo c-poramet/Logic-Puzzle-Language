@@ -34,6 +34,7 @@
     const namesIn = node => {
       if (!node) return [];
       if (node.kind === 'name' || node.kind === 'offset') return [node.name || node.value];
+      if (node.kind === 'at') return [...namesIn(node.value), node.context];
       if (node.kind === 'compare' || node.kind === 'and' || node.kind === 'or' || node.kind === 'implies' || node.kind === 'iff') return [...namesIn(node.left), ...namesIn(node.right)];
       if (node.kind === 'not') return namesIn(node.value);
       return [];

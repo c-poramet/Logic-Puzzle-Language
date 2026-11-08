@@ -181,7 +181,7 @@ C : A == beta or A == gamma
   SOLVE
   >generate statements for A B C D E` }
     ];
-  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'using', 'kmap', 'k-map', 'together', 'jointly', 'leave', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
+  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'max', 'find', 'solve', 'try', 'generate', 'statements', 'using', 'kmap', 'k-map', 'together', 'jointly', 'leave', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
@@ -291,6 +291,7 @@ C : A == beta or A == gamma
         issues.push({ line: index + 1, message: 'Expected a supported GOALS declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
+      if (mode === 'SOLVE' && /^--max\s+\d+$/i.test(text)) return;
       if (text.startsWith('>')) {
         if (!/^>\s*(find|solve|try|generate)\b/i.test(text)) issues.push({ line: index + 1, message: 'Unknown command. Try find, solve, try, or generate.', from: 0, to: raw.length, fixes: [{ label: 'Change to find', text: '>find type All' }] });
         return;
@@ -389,6 +390,8 @@ C : A == beta or A == gamma
     if (match) return `Requires ${match[1]} ${match[2]} of ${match[3]} to be ${match[4]}.`;
     match = line.match(/^threshold\s*=\s*(\d+)$/i);
     if (match) return `Stops world search after ${match[1]} surviving result${match[1] === '1' ? '' : 's'}; this may mark the result as truncated.`;
+    match = line.match(/^--max\s+(\d+)$/i);
+    if (match) return `Caps SOLVE exploration at ${match[1]} surviving result${match[1] === '1' ? '' : 's'}, or stops earlier if every world has been explored.`;
     match = line.match(/^generate\s+(?:(\d+)\s+)?statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
     if (match) return `Asks LPL to derive ${match[1] ? `${match[1]} statements` : 'one statement for each'} for ${match[2].trim()}${/k-?map|--kmap/i.test(line) ? ' using compact Karnaugh-map-style boolean minimization' : ''}.`;
     match = line.match(/^(?:together|jointly)\s+leave\s+exactly\s+(\d+)\s+possible\s+(.+?)\s+identit(?:y|ies)$/i);

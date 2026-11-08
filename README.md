@@ -631,6 +631,16 @@ threshold = 10
 
 When the limit is reached, the result reports `threshold reached` and is marked truncated. Possible-value queries over truncated results are lower bounds rather than exhaustive impossibility proofs.
 
+To cap a particular solve run, put `--max N` immediately after `SOLVE`:
+
+```lpl
+SOLVE
+--max 1000
+>find type All
+```
+
+The solver explores worlds until it has found `N` surviving results or until every world has been explored. If it reaches the cap, the result is marked truncated; if it explores everything first, the result is complete. `--max` takes precedence over `threshold = N` for that run.
+
 ## Guide: Find the Statements
 
 Some logic puzzles do not give you the statements. They ask you to **invent statements with a particular effect**:

@@ -135,6 +135,12 @@
       const upper = text.toUpperCase();
       if (upper === 'SETUP' || upper === 'STATEMENTS' || upper === 'GOALS') { section = upper; activePolicy = null; return; }
       if (upper === 'SOLVE') { section = 'SOLVE'; return; }
+      if (section === 'SOLVE' && text.startsWith('--')) {
+        const max = text.match(/^--max\s+(\d+)$/i);
+        if (!max) throw new ErrorType('SOLVE options must use "--max N"', line);
+        model.options.maxSolutions = Math.max(1, Number(max[1]));
+        return;
+      }
       if (section === 'STATEMENTS' && indent > 0 && activeQuestion) {
         const answer = text.match(/^_\s*(\d+)?\s*:\s*(positive|negative|blank)$/i);
         if (!answer) throw new ErrorType('Question answers must be positive, negative, or blank', line);

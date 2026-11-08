@@ -193,7 +193,9 @@
     let searchNodes = 0;
     let searchLeaves = 0;
     let truncated = false;
-    const threshold = Number.isInteger(model.options?.threshold) ? model.options.threshold : Infinity;
+    const threshold = Number.isInteger(model.options?.maxSolutions)
+      ? model.options.maxSolutions
+      : Number.isInteger(model.options?.threshold) ? model.options.threshold : Infinity;
     const assignment = {};
     const typeNames = model.types;
     const exactOneEach = model.options?.exactOneEach !== false && model.staters.length === typeNames.length;

@@ -405,6 +405,20 @@ assert.strictEqual(thresholdResult.count, 1);
 assert.strictEqual(thresholdResult.statistics.threshold, 1);
 assert.strictEqual(thresholdResult.statistics.truncated, true);
 
+const maxSolveModel = parser.parse(`SETUP
+stater A B
+type alpha beta
+STATEMENTS
+_ : _
+SOLVE
+--max 1
+>find type All`);
+assert.strictEqual(maxSolveModel.options.maxSolutions, 1);
+const maxSolveResult = solver.solve(maxSolveModel);
+assert.strictEqual(maxSolveResult.count, 1);
+assert.strictEqual(maxSolveResult.statistics.threshold, 1);
+assert.strictEqual(maxSolveResult.statistics.truncated, true);
+
 const completionSource = `SETUP
 stater Aimee Bob
 type alpha beta

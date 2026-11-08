@@ -231,12 +231,39 @@ C : A == beta or A == gamma
     updateTranslator();
   }
 
-  function readableExpression(expression, subject) {
-    const speaker = subject && subject !== '_' ? subject : 'the speaker';
-    return expression.replace(/\bself\b/gi, speaker).replace(/<=>/g, ' exactly when ').replace(/=>/g, ' then ').replace(/!=/g, ' is not ').replace(/==/g, ' is ').replace(/\bnot\b/gi, 'not').replace(/\band\b/gi, ' and ').replace(/\bor\b/gi, ' or ').replace(/\bon\b/gi, ' when ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+  function collectStatementReferences() {
+    const references = new Map();
+    let section = '';
+    let nextId = 1;
+    source.value.split(/\r?\n/).forEach(rawLine => {
+      const line = rawLine.replace(/#.*/, '').trim();
+      if (!line) return;
+      if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(line)) { section = line.toUpperCase(); return; }
+      if (section !== 'STATEMENTS' || line.startsWith('>')) return;
+      const numbered = line.match(/^(\d+)\s*:\s*(.+)$/);
+      const colon = numbered ? null : line.indexOf(':');
+      if (!numbered && colon < 0) return;
+      const id = numbered ? Number(numbered[1]) : nextId;
+      const subject = numbered ? '_' : line.slice(0, colon).trim();
+      const expression = numbered ? numbered[2].trim() : line.slice(colon + 1).trim();
+      references.set(id, { subject, expression });
+      nextId = Math.max(nextId, id + 1);
+    });
+    return references;
   }
 
-  function translateLine(rawLine) {
+  function readableExpression(expression, subject, references, stack = []) {
+    const speaker = subject && subject !== '_' ? subject : 'the speaker';
+    const expanded = expression.replace(/\bif\s+(\d+|-)\s*:?\s+then\s+/gi, (match, referenceId) => {
+      const reference = referenceId === '-' ? null : references?.get(Number(referenceId));
+      if (!reference || stack.includes(referenceId)) return `if statement ${referenceId} then `;
+      const wording = readableExpression(reference.expression, reference.subject, references, [...stack, referenceId]);
+      return `if [${wording}] then `;
+    });
+    return expanded.replace(/\bself\b/gi, speaker).replace(/<=>/g, ' exactly when ').replace(/=>/g, ' then ').replace(/!=/g, ' is not ').replace(/==/g, ' is ').replace(/\bnot\b/gi, 'not').replace(/\band\b/gi, ' and ').replace(/\bor\b/gi, ' or ').replace(/\bon\b/gi, ' when ').replace(/[()]/g, '').replace(/\s+/g, ' ').trim();
+  }
+
+  function translateLine(rawLine, references) {
     const line = rawLine.replace(/#.*/, '').trim();
     if (!line) return 'Blank line: no puzzle rule is declared here.';
     if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(line)) return `${line.toUpperCase()} starts the ${line.toLowerCase()} section.`;
@@ -262,7 +289,7 @@ C : A == beta or A == gamma
     match = line.match(/^(?:\d+\s*:\s*)?([^:]+?)\s*:\s*(.+)$/);
     if (match) {
       const subject = /^\d+\s*$/.test(match[1].trim()) ? '_' : match[1].trim();
-      return `${subject === '_' ? 'An anonymous speaker' : subject} says: ${readableExpression(match[2], subject)}.`;
+      return `${subject === '_' ? 'An anonymous speaker' : subject} says: ${readableExpression(match[2], subject, references)}.`;
     }
     return 'This line contains LPL syntax that the rough translator does not recognize yet.';
   }
@@ -271,8 +298,9 @@ C : A == beta or A == gamma
     if (!translatorLine || !translatorText || !translatorSource) return;
     const index = Math.max(0, lineAt().index);
     const lines = source.value.split(/\r?\n/);
+    const references = collectStatementReferences();
     translatorLine.textContent = `Line ${index + 1}`;
-    translatorText.textContent = translateLine(lines[index] || '');
+    translatorText.textContent = translateLine(lines[index] || '', references);
     translatorSource.textContent = lines[index] || ' ';
   }
 

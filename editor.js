@@ -124,6 +124,7 @@ C : A == beta or A == gamma
   }
   function openExamplePicker() {
     if (!exampleModal) return;
+    closePopups();
     renderExamplePicker();
     exampleModal.hidden = false;
     exampleGrid?.querySelector('button')?.focus();
@@ -306,7 +307,7 @@ C : A == beta or A == gamma
   }
 
   function applyPalette(value) {
-    const selected = ['ember', 'moss', 'ocean', 'paper'].includes(value) ? value : 'ember';
+    const selected = ['ember', 'moss', 'ocean', 'paper', 'high-contrast'].includes(value) ? value : 'ember';
     document.documentElement.dataset.palette = selected;
     if (palette) palette.value = selected;
     localStorage.setItem('lpl.palette', selected);
@@ -335,7 +336,7 @@ C : A == beta or A == gamma
     element.style.left = `${Math.min(rect.left + 44, window.innerWidth - 300)}px`;
     element.style.top = `${Math.min(rect.top + 34 + (line * 21) - source.scrollTop, window.innerHeight - 260)}px`;
   }
-  function closePopups() { window.clearTimeout(completionTimer); autocomplete.hidden = true; fixes.hidden = true; fixIssue = null; }
+  function closePopups() { window.clearTimeout(completionTimer); autocomplete.hidden = true; fixes.hidden = true; fixIssue = null; source.setAttribute('aria-expanded', 'false'); source.removeAttribute('aria-activedescendant'); }
   function buildCompletions() {
     const { word } = wordAt();
     if (window.LPLParser?.complete) return LPLParser.complete(source.value, source.selectionStart).map(item => ({ value: item.value, detail: item.detail }));
@@ -344,14 +345,16 @@ C : A == beta or A == gamma
     const values = [...new Set([...keywords, ...names, ...operators])];
     return values.filter(value => !word || value.toLowerCase().startsWith(word.toLowerCase())).slice(0, 12).map(value => ({ value, detail: names.includes(value) ? 'declared name' : 'LPL keyword' }));
   }
-  function showAutocomplete(manual = false) {
+  function showAutocomplete(manual = false, preserveIndex = false) {
     const { word } = wordAt();
-    if (!manual && !word) { autocomplete.hidden = true; return; }
+    if (!manual && !word) { autocomplete.hidden = true; source.setAttribute('aria-expanded', 'false'); source.removeAttribute('aria-activedescendant'); return; }
     completionItems = buildCompletions().slice(0, 12);
-    if (!completionItems.length) { autocomplete.hidden = true; return; }
-    completionIndex = 0;
-    autocomplete.innerHTML = `<div class="autocomplete-list">${completionItems.map((item, index) => `<button type="button" class="autocomplete-item${index === 0 ? ' selected' : ''}" data-index="${index}" role="option"><span>${escape(item.value)}</span><small>${escape(item.detail)}</small></button>`).join('')}</div><div class="autocomplete-hint">Enter or Tab to insert · Esc to close</div>`;
+    if (!completionItems.length) { autocomplete.hidden = true; source.setAttribute('aria-expanded', 'false'); source.removeAttribute('aria-activedescendant'); return; }
+    if (!preserveIndex || completionIndex >= completionItems.length) completionIndex = 0;
+    autocomplete.innerHTML = `<div class="autocomplete-list">${completionItems.map((item, index) => `<button id="completion-${index}" type="button" class="autocomplete-item${index === completionIndex ? ' selected' : ''}" data-index="${index}" role="option" aria-selected="${index === completionIndex}"><span>${escape(item.value)}</span><small>${escape(item.detail)}</small></button>`).join('')}</div><div class="autocomplete-hint">Enter or Tab to insert · Esc to close</div>`;
     autocomplete.hidden = false;
+    source.setAttribute('aria-expanded', 'true');
+    source.setAttribute('aria-activedescendant', `completion-${completionIndex}`);
     positionPopup(autocomplete);
   }
   function scheduleAutocomplete() {
@@ -398,11 +401,23 @@ C : A == beta or A == gamma
   source.addEventListener('click', () => { updatePosition(); closePopups(); render(); });
   source.addEventListener('scroll', syncScroll);
   source.addEventListener('select', render);
+  gutter.addEventListener('mousedown', event => {
+    const target = event.target.closest('.gutter-line');
+    if (!target) return;
+    const lineNumber = Number(target.dataset.line);
+    const lines = source.value.split(/\r?\n/);
+    const start = lines.slice(0, lineNumber - 1).reduce((total, line) => total + line.length + 1, 0);
+    event.preventDefault();
+    source.focus();
+    source.setSelectionRange(start, start);
+    render();
+  });
   document.addEventListener('selectionchange', () => { if (document.activeElement === source) { updatePosition(); render(); } });
   source.addEventListener('keydown', event => {
     if ((event.ctrlKey || event.metaKey) && event.key === ' ') { event.preventDefault(); showAutocomplete(true); return; }
     if ((event.ctrlKey || event.metaKey) && event.key === '.') { event.preventDefault(); showFixes(); return; }
     if ((event.ctrlKey || event.metaKey) && event.key === '/') { event.preventDefault(); toggleComment(); return; }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') { event.preventDefault(); document.getElementById('run').click(); return; }
     if ((event.key === '(' || event.key === '{') && source.selectionStart === source.selectionEnd) {
       const closing = event.key === '(' ? ')' : '}';
       source.setRangeText(`${event.key}${closing}`, source.selectionStart, source.selectionEnd, 'end');
@@ -419,7 +434,7 @@ C : A == beta or A == gamma
       return;
     }
     if (!autocomplete.hidden) {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); completionIndex = (completionIndex + (event.key === 'ArrowDown' ? 1 : completionItems.length - 1)) % completionItems.length; showAutocomplete(true); return; }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); completionIndex = (completionIndex + (event.key === 'ArrowDown' ? 1 : completionItems.length - 1)) % completionItems.length; showAutocomplete(true, true); return; }
       if (event.key === 'Enter' || event.key === 'Tab') { event.preventDefault(); acceptCompletion(); return; }
       if (event.key === 'Escape') { event.preventDefault(); closePopups(); return; }
     }
@@ -431,6 +446,13 @@ C : A == beta or A == gamma
       source.setRangeText(`\n${indent}${extraIndent}`, source.selectionStart, source.selectionEnd, 'end');
       source.dispatchEvent(new Event('input', { bubbles: true }));
       event.preventDefault();
+      return;
+    }
+    if (event.key === 'Tab' && event.shiftKey) {
+      event.preventDefault();
+      const lineStart = source.value.lastIndexOf('\n', source.selectionStart - 1) + 1;
+      const removal = source.value.slice(lineStart, lineStart + 2) === '  ' ? 2 : source.value[lineStart] === '\t' ? 1 : 0;
+      if (removal) { source.setRangeText('', lineStart, lineStart + removal, 'preserve'); source.dispatchEvent(new Event('input', { bubbles: true })); }
       return;
     }
     if (event.key === 'Tab') { event.preventDefault(); source.setRangeText('  ', source.selectionStart, source.selectionEnd, 'end'); source.dispatchEvent(new Event('input', { bubbles: true })); }
@@ -452,6 +474,7 @@ C : A == beta or A == gamma
   splitter?.addEventListener('pointerdown', event => { splitter.setPointerCapture(event.pointerId); splitter.classList.add('is-dragging'); resizeFromPointer(event); });
   splitter?.addEventListener('pointermove', event => { if (splitter.classList.contains('is-dragging')) resizeFromPointer(event); });
   splitter?.addEventListener('pointerup', event => { splitter.releasePointerCapture(event.pointerId); splitter.classList.remove('is-dragging'); });
+  splitter?.addEventListener('pointercancel', event => { splitter.releasePointerCapture(event.pointerId); splitter.classList.remove('is-dragging'); });
   splitter?.addEventListener('keydown', event => { if (!['ArrowLeft', 'ArrowRight'].includes(event.key)) return; event.preventDefault(); const current = Number(splitter.getAttribute('aria-valuenow')) || 42; setEditorWidth(current + (event.key === 'ArrowRight' ? 2 : -2)); });
   render();
   window.LPLEditor = { source, setMessage, updateGutter, render };

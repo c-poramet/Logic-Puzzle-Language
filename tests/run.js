@@ -341,6 +341,24 @@ assert.ok(identityGoalQuery.synthesis.tuples.length > 0);
 assert.strictEqual(identityGoalQuery.synthesis.tuples[0].checks.fixedIdentities, true);
 assert.strictEqual(identityGoalQuery.synthesis.tuples[0].checks.ambiguousIdentities, true);
 
+const kMapModel = parser.parse(`SETUP
+stater A B
+type god knight demon knave
+types may repeat
+GOALS
+generate statements for A B
+together leave exactly 2 possible god identities
+each statement alone is insufficient
+god and knight statements are true
+demon and knave statements are false
+exactly 1 of A B is a god
+SOLVE
+>generate statements for A B using k-map`);
+assert.strictEqual(kMapModel.commands[0].method, 'kmap');
+const kMapQuery = solver.query(solver.solve(kMapModel), kMapModel.commands[0]);
+assert.strictEqual(kMapQuery.synthesis.method, 'kmap');
+assert.ok(kMapQuery.synthesis.tuples.length > 0);
+
 const thresholdModel = parser.parse(`SETUP
 stater A B C
 type alpha beta gamma

@@ -70,6 +70,78 @@
     return { expressions, truncated: expressions.length >= maxExpressions };
   }
 
+  function combineNodes(nodes, kind) {
+    return nodes.slice(1).reduce((left, right) => ({ kind, left, right }), nodes[0]);
+  }
+
+  function kMapExpression(model, subjects, subject, worlds, evaluate, matchesType, goals, options) {
+    const atoms = atomExpressions(model, subjects).map(candidate => ({
+      ...candidate,
+      values: worlds.map(world => evaluate(candidate.expr, world.assignment, model, subject))
+    })).filter(candidate => candidate.values.every(value => value === true || value === false));
+    const features = atoms.filter(candidate => new Set(candidate.values).size > 1).slice(0, options.maxKMapFeatures || 8);
+    const desired = worlds.map(world => {
+      const type = world.assignment[subject];
+      const canBeTrue = matchesSpeaker(type, true, world.assignment, model, goals, matchesType);
+      const canBeFalse = matchesSpeaker(type, false, world.assignment, model, goals, matchesType);
+      return canBeTrue && !canBeFalse ? true : canBeFalse && !canBeTrue ? false : null;
+    });
+    const trueRows = desired.map((value, index) => value === true ? index : -1).filter(index => index >= 0);
+    const falseRows = desired.map((value, index) => value === false ? index : -1).filter(index => index >= 0);
+    if (!trueRows.length || !features.length) return null;
+
+    const featureValue = (feature, row) => feature.values[row] === true;
+    const literalOptions = trueRows.map(row => features.flatMap((feature, index) => {
+      if (featureValue(feature, row)) return [{ index, positive: true }, { index, positive: false }];
+      return [];
+    }));
+    const covers = literals => worlds.map((_, row) => row).filter(row => literals.every(literal => featureValue(features[literal.index], row) === literal.positive));
+    const findTerm = row => {
+      const optionsForRow = literalOptions[trueRows.indexOf(row)] || [];
+      for (let size = 1; size <= Math.min(options.maxKMapLiterals || 3, optionsForRow.length); size++) {
+        let found = null;
+        const choose = (start, selected) => {
+          if (found) return;
+          if (selected.length === size) {
+            if (new Set(selected.map(literal => literal.index)).size !== selected.length) return;
+            const covered = covers(selected);
+            if (!covered.includes(row) || covered.some(value => falseRows.includes(value))) return;
+            found = { literals: selected.slice(), covered };
+            return;
+          }
+          for (let index = start; index < optionsForRow.length; index++) choose(index + 1, [...selected, optionsForRow[index]]);
+        };
+        choose(0, []);
+        if (found) return found;
+      }
+      return null;
+    };
+    const terms = trueRows.map(row => findTerm(row)).filter(Boolean);
+    const selectedTerms = [];
+    const uncovered = new Set(trueRows);
+    while (uncovered.size && terms.length) {
+      const best = terms.filter(term => term.covered.some(row => uncovered.has(row))).sort((left, right) => {
+        const leftCoverage = left.covered.filter(row => uncovered.has(row)).length;
+        const rightCoverage = right.covered.filter(row => uncovered.has(row)).length;
+        return rightCoverage - leftCoverage || left.literals.length - right.literals.length;
+      })[0];
+      if (!best) break;
+      selectedTerms.push(best);
+      best.covered.forEach(row => uncovered.delete(row));
+    }
+    if (uncovered.size) return null;
+    const termNodes = selectedTerms.map(term => combineNodes(term.literals.map(literal => literal.positive ? cloneNode(features[literal.index].expr) : { kind: 'not', value: cloneNode(features[literal.index].expr) }), 'and'));
+    const expr = termNodes.length === 1 ? termNodes[0] : combineNodes(termNodes, 'or');
+    return { text: expressionText(expr), expr, depth: 1, method: 'kmap' };
+  }
+
+  function kMapExpressions(model, subjects, worlds, evaluate, matchesType, goals, options) {
+    return Object.fromEntries(subjects.map(subject => {
+      const candidate = kMapExpression(model, subjects, subject, worlds, evaluate, matchesType, goals, options);
+      return [subject, candidate ? [candidate] : []];
+    }));
+  }
+
   function goalPolicies(goals) {
     const policies = {};
     for (const goal of goals) {
@@ -160,7 +232,16 @@
 
     const baseWorlds = applyWorldGoals(result.solutions || [], goals);
     const expressionResult = generateExpressions(model, requestedSubjects, options);
-    const expressionData = requestedSubjects.map(subject => expressionResult.expressions.map(candidate => ({ ...candidate, subject })));
+    const kMapData = options.method === 'kmap' ? kMapExpressions(model, requestedSubjects, baseWorlds, evaluate, matchesType, goals, options) : null;
+    const expressionData = requestedSubjects.map(subject => {
+      const candidates = kMapData?.[subject]?.length ? [...kMapData[subject], ...expressionResult.expressions] : expressionResult.expressions;
+      const seen = new Set();
+      return candidates.filter(candidate => {
+        if (seen.has(candidate.text)) return false;
+        seen.add(candidate.text);
+        return true;
+      }).map(candidate => ({ ...candidate, subject }));
+    });
     const candidateWorlds = expressionData.map(candidates => candidates.map(candidate => evaluateCandidate(candidate, baseWorlds, candidate.subject, model, evaluate, matchesType, goals)));
     const maxTuples = Math.max(1, Number.isInteger(options.maxTuples) ? options.maxTuples : 50000);
     const maxResults = Math.max(1, Number.isInteger(options.maxResults) ? options.maxResults : 25);
@@ -197,6 +278,7 @@
       expressionCount: expressionResult.expressions.length,
       tupleCount,
       truncated,
+      method: options.method === 'kmap' ? 'kmap' : 'default',
       limits: { maxDepth: options.maxDepth ?? 1, maxExpressions: options.maxExpressions ?? 512, maxTuples, maxResults }
     };
   }

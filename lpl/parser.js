@@ -267,9 +267,10 @@
         throw new ErrorType('Expected a statement-generation or puzzle goal', line);
       }
       if (text.startsWith('>')) {
-        const generate = text.match(/^>\s*generate\s+statements?\s+for\s+(.+)$/i);
+        const generate = text.match(/^>\s*generate\s+statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
         if (generate) {
-          model.commands.push({ name: 'generate', target: 'statements', argument: generate[1].trim(), line });
+          const method = /(?:using\s+)?k-?map|--kmap|--method\s+k-?map$/i.test(text) ? 'kmap' : 'default';
+          model.commands.push({ name: 'generate', target: 'statements', argument: generate[1].trim(), method, line });
           return;
         }
         const match = text.match(/^>\s*(find|solve|try)\s+(type|value|possible|impossible)?\s*(.*)$/i);
@@ -323,7 +324,7 @@
     const prefix = (match ? match[0] : '').toLowerCase();
     const values = new Map();
     const add = (value, detail) => { if (!value || (prefix && !value.toLowerCase().startsWith(prefix))) return; values.set(`${value}\0${detail}`, { value, detail }); };
-    ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'together', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
+    ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'using', 'kmap', 'k-map', 'together', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
     const lines = source.split(/\r?\n/);
     lines.forEach(line => {
       let found = line.match(/^\s*stater\s+(.+)$/i);

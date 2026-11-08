@@ -597,6 +597,14 @@ SOLVE
 >generate statements for A B
 ```
 
+For compact boolean expressions, request Karnaugh-map-style minimization:
+
+```lpl
+>generate statements for A B using k-map
+```
+
+`--kmap` and `--method kmap` are accepted aliases. K-map mode builds a truth table from the surviving finite worlds, treats role states that allow either truth value as don't-care rows, and searches for short conjunctions that can be combined into a smaller `and`/`or` expression. It is still bounded; it is a minimization aid, not a proof-producing symbolic algebra system.
+
 The generator searches a bounded set of comparisons and small boolean expressions. It keeps a pair only when the statements together satisfy the declared goals and each statement alone leaves the requested identity ambiguous. The result shows the statements, surviving worlds, possible identities, and the individual evidence for each statement.
 
 Identity outcomes can be targeted directly:

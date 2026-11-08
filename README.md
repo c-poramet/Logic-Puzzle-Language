@@ -2,6 +2,250 @@
 
 Logic Puzzle Language (LPL) is a no-build browser tool for exploring Knights-and-Knaves-style puzzles and their variants. It follows the local, explicit-update workflow of GridPuzzleSolver: open `index.html`, edit the program, and press **Update now** or `Ctrl/⌘ Enter`.
 
+## Translate by intuition
+
+The easiest way to translate a puzzle is to separate its facts into four questions:
+
+1. **Who are the people making statements?** Declare them as `stater`s.
+2. **What kind of person can each one be?** Declare the available `type`s.
+3. **What objects, roles, or shared conditions need their own values?** Declare them with `var` or `case`.
+4. **What does each person say?** Write one expression after that person's colon.
+
+LPL does not require you to encode the story in one large formula. Give every named thing a small finite domain, then write the statements as direct comparisons. The solver searches the resulting possibility space and keeps only worlds in which every statement is compatible with its speaker's type.
+
+### The translation dictionary
+
+| Plain-language idea | Short LPL form | Explicit LPL form | Meaning |
+|---|---|---|---|
+| People who make statements | `stater A B` | `stater Aimee Bob` | Declares the statement subjects. |
+| Possible kinds | `type alpha beta` | `type truthful liar` | Gives every stater the same type domain. |
+| A person is a type | `self == beta` | `Aimee == liar` | `self` means the current statement subject. |
+| A person says a proposition | `A : A == beta` | `Aimee : Aimee == liar` | The expression after `:` is the statement content. |
+| A named finite choice | `var thief in {A, B}` | `var thief in {Aimee, Bob}` | The variable's value is one declared choice. |
+| A shared finite condition | `case state awake asleep` | `case meeting_state awake asleep` | One assignment is shared wherever the case is referenced. |
+| Exactly one of each declared type | implicit when counts match | `type alpha beta` with two staters | This is the compatibility default. |
+| Repeated types allowed | `types may repeat` | `types may repeat` | Use when both people may have the same type. |
+| Ask for a stater's type | `>find type A` | `>find type Aimee` | Lists possible type values for that stater. |
+| Ask for a finite variable | `>find value thief` | `>find value meeting_state` | Lists possible values in surviving worlds. |
+
+Short forms are readability conveniences, not different logic. Prefer full names while translating, then use `self` or a unique prefix when the meaning remains obvious. For example, `Aimee : self == beta` and `Aimee : Aimee == beta` mean the same thing.
+
+### 1. Start with the smallest puzzle
+
+Plain language:
+
+> Aimee, Bob, and Calvin are one truthful person, one liar, and one person who may say either truth or falsehood. Aimee says, “I am a liar.” Bob says, “Aimee is truthful.” Calvin says, “Aimee is a liar or may be either kind.”
+
+Short form:
+
+```lpl
+SETUP
+stater Aimee Bob Calvin
+type alpha beta gamma
+
+STATEMENTS
+Aimee : self == beta
+Bob : Aimee == alpha
+Calvin : Aimee == beta or Aimee == gamma
+
+>find type All
+```
+
+Long form:
+
+```lpl
+SETUP
+stater Aimee Bob Calvin
+type alpha beta gamma
+
+STATEMENTS
+Aimee : Aimee == beta
+Bob : Aimee == alpha
+Calvin : (Aimee == beta) or (Aimee == gamma)
+
+>find type Aimee
+>find type Bob
+>find type Calvin
+```
+
+Here `alpha` means the statement must be true, `beta` means it must be false, and `gamma` imposes no truth requirement. Because there are three staters and three types, the default rule assigns exactly one stater to each type.
+
+### 2. Translate comparisons directly
+
+| Plain language | Short form | Long form |
+|---|---|---|
+| “I am a liar.” | `self == beta` | `Aimee == beta` |
+| “Bob is truthful.” | `Bob == alpha` | `Bob == alpha` |
+| “I am not a liar.” | `not (self == beta)` | `not (Aimee == beta)` |
+| “Bob is a liar or normal.” | `Bob == beta or Bob == gamma` | `(Bob == beta) or (Bob == gamma)` |
+| “Bob is not a liar.” | `Bob != beta` | `Bob != beta` |
+
+Use the type names from the puzzle consistently. If the story calls the types `diurnal` and `nocturnal`, do not rename them to `alpha` and `beta` unless you explicitly want those names in the program.
+
+### 3. Use parentheses for the story's grouping
+
+Translate “if P, then Q” with `=>`, and translate “P if and only if Q” with `<=>`.
+
+| Plain language | LPL |
+|---|---|
+| If Aimee is truthful, Bob is a liar. | `Aimee == alpha => Bob == beta` |
+| Aimee is truthful if and only if Bob is a liar. | `Aimee == alpha <=> Bob == beta` |
+| If Aimee is truthful and Bob is a liar, Calvin is truthful. | `(Aimee == alpha and Bob == beta) => Calvin == alpha` |
+| Aimee is truthful or Bob is a liar, and Calvin is truthful. | `((Aimee == alpha) or (Bob == beta)) and Calvin == alpha` |
+
+When a condition contains `and` or `or`, parenthesize it before attaching `=>` or `<=>`. This keeps the program visibly aligned with the English sentence and avoids relying on precedence when the sentence is dense.
+
+### 4. Model roles and objects as finite variables
+
+A role is usually not a stater type. If exactly one person is the witch doctor, make the variable's value the person who holds that role:
+
+```lpl
+SETUP
+stater Ork Bork
+type diurnal nocturnal
+types may repeat
+var witchdoctor in {Ork, Bork}
+
+STATEMENTS
+Ork : witchdoctor == self
+Bork : witchdoctor == self
+
+>find value witchdoctor
+```
+
+| Plain language | Short form | Long form |
+|---|---|---|
+| “I am the witch doctor.” | `witchdoctor == self` | `witchdoctor == Ork` |
+| “The thief is Aimee.” | `thief == self` | `thief == Aimee` |
+| “The person assigned to thief lied.” | `rule thief made a false statement` | Same rule, with `var thief in {...}` declared first. |
+
+Use `types may repeat` when the source says everyone is one of the listed types but does not say one person has each type. Without it, two staters and two types activate the default one-of-each rule.
+
+### 5. Model a shared condition once
+
+If the story says two people were both in one of two conditions, declare one `case` rather than one variable per person:
+
+```lpl
+SETUP
+stater Ork Bork
+type diurnal nocturnal
+types may repeat
+var witchdoctor in {Ork, Bork}
+case state awake asleep
+
+policy diurnal:
+	awake => true
+	asleep => false
+
+policy nocturnal:
+	awake => false
+	asleep => true
+
+STATEMENTS
+Ork : (self == diurnal and state == awake) => witchdoctor == self
+Bork : ((self == diurnal and state == awake) or (self == nocturnal and state == asleep)) => witchdoctor == self
+
+>find type Ork
+>find type Bork
+>find value witchdoctor
+>find value state
+```
+
+The commands return:
+
+| Query | Answer |
+|---|---|
+| `>find type Ork` | `nocturnal` |
+| `>find type Bork` | `nocturnal` |
+| `>find value witchdoctor` | `Bork` |
+| `>find value state` | `asleep` |
+
+The `policy` entries say whether a type's statement must be true in each case value. The case name and values are ordinary identifiers: `state`, `awake`, and `asleep` are not hard-coded engine keywords.
+
+### 6. Add counting rules only when the story says to count
+
+Do not infer counting from the number of declarations unless the language's default one-of-each rule applies. For an explicit rule, use a cardinality statement:
+
+```lpl
+SETUP
+stater Aimee Bob Calvin
+type alpha beta gamma
+exactly 2 of Aimee Bob Calvin == alpha
+atleast 1 of Aimee Bob Calvin == beta
+atmost 1 of Aimee Bob Calvin == gamma
+
+STATEMENTS
+Aimee : self == alpha
+Bob : self == alpha
+Calvin : self == beta
+```
+
+| English phrase | LPL form |
+|---|---|
+| Exactly two people are truthful. | `exactly 2 of Aimee Bob == alpha` |
+| At least one person is a liar. | `atleast 1 of Aimee Bob == beta` |
+| At most one person is normal. | `atmost 1 of Aimee Bob == gamma` |
+
+### 7. Use contexts for ordered or cyclic facts
+
+For days, positions, rounds, or other ordered values, use `case`. Add `wrap` only when the order is circular:
+
+```lpl
+SETUP
+stater Lion Unicorn
+type alpha beta
+case day Mon Tue Wed Thu Fri Sat Sun wrap
+group workdays = {Mon, Tue, Wed, Thu, Fri}
+
+STATEMENTS
+Lion : day - 1 == workdays
+Unicorn : on Sun Lion == beta
+
+>find value day
+```
+
+| Plain language | LPL |
+|---|---|
+| “The day is one before Monday.” | `day - 1 == Mon` |
+| “The previous day is a workday.” | `day - 1 == workdays` |
+| “On Sunday, Lion says Bob is a liar.” | `on Sun Lion == beta` |
+| “The day is Monday, Tuesday, or Wednesday.” | `day == workdays` with `group workdays = {Mon, Tue, Wed}` |
+
+### 8. Translate questions and unknowns carefully
+
+Use a question block when the puzzle explicitly allows positive, negative, or unknown answers:
+
+```lpl
+SETUP
+stater Aimee
+type alpha beta
+
+STATEMENTS
+? : Aimee == alpha
+	_ : positive
+	_ : blank
+
+>find type All
+```
+
+`positive` means true, `negative` means false, and `blank` means the expression is still unknown in a partial world. An unknown result is not the same as zero surviving worlds: zero worlds means the rules contradict one another.
+
+### 9. Finish with answer commands
+
+Use broad commands while developing and targeted commands when the puzzle asks specific questions:
+
+| Command | Use it for |
+|---|---|
+| `>find type All` | Show every surviving stater assignment. |
+| `>find value All` | Show every surviving finite-variable and context assignment. |
+| `>find type Aimee` | Ask for Aimee's possible types. |
+| `>find value thief` | Ask who can be the thief. |
+| `>find value state` | Ask which shared condition survives. |
+| `>find value 1:` | Ask whether numbered statement 1 is true, false, or unknown. |
+| `>try Aimee := alpha` | Test one proposed assignment. |
+
+Translate first, query second. If a targeted query returns multiple values, the puzzle has not determined that answer. If it returns no values, inspect the explanations and the premises for a contradiction.
+
 ## Current language
 
 The first engine slice supports:

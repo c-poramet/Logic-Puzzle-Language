@@ -14,6 +14,7 @@
   const palette = document.getElementById('palette');
   const surfaceContrast = document.getElementById('surface-contrast');
   const textContrast = document.getElementById('text-contrast');
+  const editorVibrance = document.getElementById('editor-vibrance');
   const workspace = document.querySelector('.workspace');
   const splitter = document.getElementById('splitter');
   const exampleModal = document.getElementById('example-modal');
@@ -390,12 +391,16 @@ C : A == beta or A == gamma
   function applyContrast() {
     const surfaceInput = Number(surfaceContrast?.value);
     const textInput = Number(textContrast?.value);
+    const vibranceInput = Number(editorVibrance?.value);
     const surfaceValue = Math.max(0, Math.min(100, Number.isFinite(surfaceInput) ? surfaceInput : 100));
     const textValue = Math.max(0, Math.min(100, Number.isFinite(textInput) ? textInput : 100));
+    const vibranceValue = Math.max(0, Math.min(150, Number.isFinite(vibranceInput) ? vibranceInput : 100));
     document.documentElement.style.setProperty('--ui-contrast', `${surfaceValue}%`);
     document.documentElement.style.setProperty('--text-contrast', `${textValue}%`);
+    document.documentElement.style.setProperty('--editor-vibrance', `${vibranceValue}%`);
     localStorage.setItem('lpl.uiContrast', String(surfaceValue));
     localStorage.setItem('lpl.textContrast', String(textValue));
+    localStorage.setItem('lpl.editorVibrance', String(vibranceValue));
   }
 
   function setEditorWidth(value) {
@@ -556,8 +561,10 @@ C : A == beta or A == gamma
   applyPalette(localStorage.getItem('lpl.palette') || 'ember');
   if (surfaceContrast) surfaceContrast.value = localStorage.getItem('lpl.uiContrast') || '100';
   if (textContrast) textContrast.value = localStorage.getItem('lpl.textContrast') || '100';
+  if (editorVibrance) editorVibrance.value = localStorage.getItem('lpl.editorVibrance') || '100';
   surfaceContrast?.addEventListener('input', applyContrast);
   textContrast?.addEventListener('input', applyContrast);
+  editorVibrance?.addEventListener('input', applyContrast);
   applyContrast();
   const savedWidth = Number(localStorage.getItem('lpl.editorWidth'));
   if (Number.isFinite(savedWidth)) setEditorWidth(savedWidth);

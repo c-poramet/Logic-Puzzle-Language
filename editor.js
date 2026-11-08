@@ -64,7 +64,7 @@ C : A == beta or A == gamma
   generate statements for A B
   god and knight statements are true
   demon and knave statements are false
-  exactly 1 of A B is a god
+  together prove exactly 1 of A B is a god
   together leave exactly 2 possible god identities
   each statement alone is insufficient
 

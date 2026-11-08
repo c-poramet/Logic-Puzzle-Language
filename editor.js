@@ -12,6 +12,8 @@
   const translatorText = document.getElementById('translator-text');
   const translatorSource = document.getElementById('translator-source');
   const palette = document.getElementById('palette');
+  const surfaceContrast = document.getElementById('surface-contrast');
+  const textContrast = document.getElementById('text-contrast');
   const workspace = document.querySelector('.workspace');
   const splitter = document.getElementById('splitter');
   const exampleModal = document.getElementById('example-modal');
@@ -313,6 +315,17 @@ C : A == beta or A == gamma
     localStorage.setItem('lpl.palette', selected);
   }
 
+  function applyContrast() {
+    const surfaceInput = Number(surfaceContrast?.value);
+    const textInput = Number(textContrast?.value);
+    const surfaceValue = Math.max(0, Math.min(100, Number.isFinite(surfaceInput) ? surfaceInput : 100));
+    const textValue = Math.max(0, Math.min(100, Number.isFinite(textInput) ? textInput : 100));
+    document.documentElement.style.setProperty('--ui-contrast', `${surfaceValue}%`);
+    document.documentElement.style.setProperty('--text-contrast', `${textValue}%`);
+    localStorage.setItem('lpl.uiContrast', String(surfaceValue));
+    localStorage.setItem('lpl.textContrast', String(textValue));
+  }
+
   function setEditorWidth(value) {
     const width = Math.max(25, Math.min(65, value));
     document.documentElement.style.setProperty('--editor-width', `${width}%`);
@@ -469,6 +482,11 @@ C : A == beta or A == gamma
   window.addEventListener('resize', syncScroll);
   palette?.addEventListener('change', event => applyPalette(event.target.value));
   applyPalette(localStorage.getItem('lpl.palette') || 'ember');
+  if (surfaceContrast) surfaceContrast.value = localStorage.getItem('lpl.uiContrast') || '100';
+  if (textContrast) textContrast.value = localStorage.getItem('lpl.textContrast') || '100';
+  surfaceContrast?.addEventListener('input', applyContrast);
+  textContrast?.addEventListener('input', applyContrast);
+  applyContrast();
   const savedWidth = Number(localStorage.getItem('lpl.editorWidth'));
   if (Number.isFinite(savedWidth)) setEditorWidth(savedWidth);
   splitter?.addEventListener('pointerdown', event => { splitter.setPointerCapture(event.pointerId); splitter.classList.add('is-dragging'); resizeFromPointer(event); });

@@ -164,6 +164,14 @@ Statement truth values are queryable by numeric ID:
 
 The result reports `true`, `false`, and `unknown` as separate possible values.
 
+One subject can provide multiple statements separated by top-level colons:
+
+```lpl
+_ : A == alpha : A == beta
+```
+
+Each expression receives its own generated statement ID. Colons inside `if 1: then ...` references are preserved.
+
 Blank comparison statements can be synthesized with a bounded brute-force query:
 
 ```lpl

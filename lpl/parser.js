@@ -82,6 +82,23 @@
     return result;
   }
 
+  function splitStatementExpressions(text) {
+    const parts = [];
+    let start = 0;
+    let depth = 0;
+    for (let index = 0; index < text.length; index++) {
+      const character = text[index];
+      if ('([{'.includes(character)) depth++;
+      else if (')]}'.includes(character)) depth--;
+      else if (character === ':' && depth === 0 && !/if\s+\d+\s*$/i.test(text.slice(start, index))) {
+        parts.push(text.slice(start, index).trim());
+        start = index + 1;
+      }
+    }
+    parts.push(text.slice(start).trim());
+    return parts.filter(Boolean);
+  }
+
   function parse(source) {
     const lines = source.split(/\r?\n/);
     let section = '';
@@ -187,18 +204,20 @@
       if (!numbered && !match) throw new ErrorType('Expected "subject : statement"', line);
       const statementId = numbered ? Number(numbered[1]) : model.statements.length + 1;
       const statementSubject = numbered ? '_' : match[1].trim();
-      const statementText = (numbered ? numbered[2] : match[2]).trim();
-      let expr;
-      const conditional = statementText.match(/^if\s+(\d+)\s*:?\s+then\s+(.+)$/i);
-      if (statementText === '_') expr = { kind: 'hole' };
-      else if (conditional) expr = { kind: 'implies', left: { kind: 'statementRef', id: Number(conditional[1]) }, right: expression(conditional[2], line) };
-      else expr = expression(statementText, line);
-      const statement = { id: statementId, subject: statementSubject, expr, source: text, line };
-      model.statements.push(statement);
-      if (statement.subject === '?') {
-        activeQuestion = { statementId: statement.id, statement, answers: [] };
-        model.questions.push(activeQuestion);
-      }
+      const statementTexts = splitStatementExpressions(numbered ? numbered[2] : match[2]);
+      statementTexts.forEach((statementText, offset) => {
+        let expr;
+        const conditional = statementText.match(/^if\s+(\d+)\s*:?\s+then\s+(.+)$/i);
+        if (statementText === '_') expr = { kind: 'hole' };
+        else if (conditional) expr = { kind: 'implies', left: { kind: 'statementRef', id: Number(conditional[1]) }, right: expression(conditional[2], line) };
+        else expr = expression(statementText, line);
+        const statement = { id: offset ? model.statements.length + 1 : statementId, subject: statementSubject, expr, source: text, line };
+        model.statements.push(statement);
+        if (statement.subject === '?') {
+          activeQuestion = { statementId: statement.id, statement, answers: [] };
+          model.questions.push(activeQuestion);
+        }
+      });
     });
     if (!model.staters.length) throw new ErrorType('No staters declared');
     if (!model.types.length) throw new ErrorType('No types declared');

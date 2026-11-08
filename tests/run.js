@@ -285,4 +285,12 @@ STATEMENTS
 const statementQueryResult = solver.solve(statementQueryModel);
 const statementQuery = solver.query(statementQueryResult, statementQueryModel.commands[0]);
 assert.deepStrictEqual(statementQuery.choices[0].possible.sort(), ['false', 'true']);
+
+const multipleModel = parser.parse(`SETUP
+stater A
+type alpha beta
+STATEMENTS
+_ : A == alpha : A == beta`);
+assert.strictEqual(multipleModel.statements.length, 2);
+assert.deepStrictEqual(multipleModel.statements.map(statement => statement.id), [1, 2]);
 console.log('LPL parser and solver tests passed.');

@@ -119,7 +119,7 @@
       const key = normalize(statement.subject);
       return key === normalize(subject) || subjects.get(key) === subject;
     });
-    const propagated = root.LPLPropagate?.run(model) || { domains: {}, rounds: 0, reductions: 0, contradiction: null };
+    const propagated = root.LPLPropagate?.run(model, evaluate) || { domains: {}, rounds: 0, reductions: 0, contradiction: null };
     if (propagated.contradiction) {
       explanations.add({ kind: 'propagation', line: 0, message: propagated.contradiction });
       return { model, solutions, count: 0, exactOneEach, statistics: propagated, explanations: explanations.list() };

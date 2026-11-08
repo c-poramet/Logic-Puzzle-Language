@@ -133,7 +133,7 @@ STATEMENTS
 A : A == beta`);
 const contradictionResult = solver.solve(contradictionModel);
 assert.strictEqual(contradictionResult.count, 0);
-assert.ok(contradictionResult.explanations.some(entry => entry.kind === 'statement' && entry.line === 5));
+assert.ok(contradictionResult.explanations.some(entry => entry.message.includes('Statement at line 5')));
 
 const searchModel = parser.parse(`SETUP
 stater A B
@@ -145,4 +145,14 @@ B : B == alpha`);
 const searchResult = solver.solve(searchModel);
 assert.strictEqual(searchResult.statistics.searchLeaves, 4);
 assert.deepStrictEqual(searchResult.statistics.variableOrder, ['A', 'B']);
+
+const supportModel = parser.parse(`SETUP
+stater A
+type alpha beta gamma
+STATEMENTS
+A : A == beta`);
+const supportResult = solver.solve(supportModel);
+assert.strictEqual(supportResult.count, 1);
+assert.strictEqual(supportResult.solutions[0].assignment.A, 'gamma');
+assert.ok(supportResult.statistics.reductions >= 1);
 console.log('LPL parser and solver tests passed.');

@@ -3,7 +3,7 @@
 (function (root) {
   const normalize = value => String(value).toLowerCase();
 
-  function run(model) {
+  function run(model, evaluate) {
     const domains = Object.fromEntries((model.variables || []).map(variable => [variable.name, new Set(variable.domain)]));
     const rules = model.cardinalityRules || [];
     let reductions = 0;
@@ -12,8 +12,11 @@
     let contradiction = null;
     const findVariable = name => {
       const needle = normalize(name);
-      const variable = (model.variables || []).find(item => normalize(item.name) === needle);
-      return variable ? variable.name : null;
+      const variables = model.variables || [];
+      const exact = variables.find(item => normalize(item.name) === needle);
+      if (exact) return exact.name;
+      const matches = variables.filter(item => normalize(item.name).startsWith(needle));
+      return matches.length === 1 ? matches[0].name : null;
     };
     const hasValue = (domain, value) => [...domain].some(item => normalize(item) === normalize(value));
     const removeValue = (domain, value) => {
@@ -27,6 +30,42 @@
       }
     };
     const fail = message => { contradiction = contradiction || message; };
+    const compatible = (type, value) => type === 'alpha' ? value === true : type === 'beta' ? value === false : true;
+    const namesIn = node => {
+      if (!node) return [];
+      if (node.kind === 'name' || node.kind === 'offset') return [node.name || node.value];
+      if (node.kind === 'compare' || node.kind === 'and' || node.kind === 'or' || node.kind === 'implies' || node.kind === 'iff') return [...namesIn(node.left), ...namesIn(node.right)];
+      if (node.kind === 'not') return namesIn(node.value);
+      return [];
+    };
+    const statementSupport = statement => {
+      if (!evaluate || statement.subject.trim() === '_') return;
+      const subject = model.staters.find(name => normalize(name) === normalize(statement.subject) || normalize(name).startsWith(normalize(statement.subject)));
+      if (!subject || !domains[subject]) return;
+      const references = [...new Set(namesIn(statement.expr))].filter(name => !['self'].includes(normalize(name)));
+      const variables = references.map(name => findVariable(name)).filter(Boolean).map(name => name);
+      const options = variables.map(name => [...domains[name]]);
+      const size = options.reduce((total, values) => total * values.length, 1);
+      if (size > 2000) return;
+      const supported = new Set();
+      const visit = index => {
+        if (index === variables.length) {
+          const subjectDomain = domains[subject];
+          for (const type of subjectDomain) {
+            const assignment = Object.fromEntries(variables.map((name, position) => [name, current[position]]));
+            assignment[subject] = type;
+            const value = evaluate(statement.expr, assignment, model, subject);
+            if (compatible(type, value)) supported.add(type);
+          }
+          return;
+        }
+        for (const value of options[index]) { current[index] = value; visit(index + 1); }
+      };
+      const current = [];
+      visit(0);
+      for (const type of [...domains[subject]]) if (!supported.has(type)) domains[subject].delete(type), reductions++;
+      if (!domains[subject].size) fail(`Statement at line ${statement.line} has no compatible stater type`);
+    };
     while (changed && !contradiction) {
       changed = false;
       const before = reductions;
@@ -49,6 +88,7 @@
         }
         if (domainsForRule.some(domain => !domain.size)) { fail('Propagation emptied a variable domain'); break; }
       }
+      if (!contradiction) for (const statement of model.statements || []) statementSupport(statement);
       changed = reductions > before;
     }
     return { domains, rounds, reductions, contradiction };

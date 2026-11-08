@@ -90,6 +90,8 @@ When candidate worlds are rejected, the result panel can expand **Why worlds wer
 
 The solver now checks cardinality feasibility during search, orders variables by smallest remaining domain first, and reports branch statistics such as visited nodes and complete leaves. The exhaustive search fallback remains in place for correctness.
 
+Propagation also checks stater statements against their finite domains. A type is removed before search when no compatible completion can make that statement satisfy its alpha/beta rule; larger expression supports are skipped when their local completion space exceeds the bounded propagation budget.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

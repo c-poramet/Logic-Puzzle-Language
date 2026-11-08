@@ -224,6 +224,7 @@ assert.ok(policyResult.solutions.every(solution => solution.assignment.WAKE === 
 const conditionalBeliefModel = parser.parse(`SETUP
 stater Ork Bork
 type diurnal nocturnal
+types may repeat
 var witchdoctor in {Ork, Bork}
 case condition present absent
 policy diurnal:
@@ -238,7 +239,9 @@ Bork : ((self == diurnal and condition == present) or (self == nocturnal and con
 >find type All`);
 assert.deepStrictEqual(conditionalBeliefModel.variables.map(variable => variable.name), ['Ork', 'Bork', 'witchdoctor', 'condition']);
 assert.deepStrictEqual(conditionalBeliefModel.contexts[0].values, ['present', 'absent']);
-assert.strictEqual(solver.solve(conditionalBeliefModel).count, 0);
+const conditionalBeliefResult = solver.solve(conditionalBeliefModel);
+assert.strictEqual(conditionalBeliefResult.count, 1);
+assert.deepStrictEqual(conditionalBeliefResult.solutions[0].assignment, { Ork: 'nocturnal', Bork: 'nocturnal', witchdoctor: 'Bork', condition: 'absent' });
 
 const onModel = parser.parse(`SETUP
 stater L

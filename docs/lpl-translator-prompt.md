@@ -38,6 +38,7 @@ Type semantics:
 - `beta` statements must be false.
 - `gamma` statements may be true or false.
 - When the number of staters equals the number of types, exactly one stater receives each type.
+- Use `types may repeat` when the source says each person has one of the listed types but does not say that each type occurs exactly once.
 
 Supported commands include:
 
@@ -63,7 +64,7 @@ Supported commands include:
 12. Do not silently convert temporal, spatial, counting, ownership, conditional, or object-identity rules into incorrect stater-type comparisons.
 13. If the puzzle needs unsupported features, stop and report them instead of fabricating near-equivalent LPL.
 14. Do not add a claim merely because it makes the puzzle solvable.
-15. Treat “exactly one of each type” as active when the program declares the same number of staters and types.
+15. Treat “exactly one of each type” as active by default when the program declares the same number of staters and types. Add `types may repeat` when the source does not require one person of each type.
 16. Declare objects such as a thief explicitly before comparing them in a statement.
 17. Translate “exactly N”, “at least N”, and “at most N” into `exactly N of ... == value`, `atleast N of ... == value`, and `atmost N of ... == value`.
 18. Translate “if ... then ...” with `=>` and “if and only if” with `<=>`; preserve parentheses around each proposition.
@@ -154,6 +155,7 @@ stater Ork Bork
 type diurnal nocturnal
 var witchdoctor in {Ork, Bork}
 case condition present absent
+types may repeat
 policy diurnal:
 	present => true
 	absent => false
@@ -168,4 +170,4 @@ Bork : ((self == diurnal and condition == present) or (self == nocturnal and con
 >find type All
 ```
 
-This is a faithful encoding of the supplied Ork/Bork statements. The current solver reports no surviving world for these exact rules, so the translator must report that contradiction rather than inventing a witch doctor or changing the statement meaning.
+This is a faithful encoding of the supplied Ork/Bork statements. It produces one surviving world: both inhabitants are nocturnal, both were asleep, and Bork was the witch doctor.

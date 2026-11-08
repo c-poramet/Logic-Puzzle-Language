@@ -152,6 +152,7 @@
           return;
         }
         if (indent === 0) activePolicy = null;
+          if (/^types\s+may\s+repeat$/i.test(text)) { model.options.exactOneEach = false; return; }
         let ruleMatch = text.match(/^if\s+([A-Za-z_][A-Za-z0-9_]*)\s+then$/i);
         if (ruleMatch) {
           activeRule = { branches: [{ condition: ruleMatch[1], assignments: [] }], line };
@@ -265,7 +266,7 @@
     const prefix = (match ? match[0] : '').toLowerCase();
     const values = new Map();
     const add = (value, detail) => { if (!value || (prefix && !value.toLowerCase().startsWith(prefix))) return; values.set(`${value}\0${detail}`, { value, detail }); };
-    ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
+    ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'].forEach(value => add(value, 'LPL keyword'));
     const lines = source.split(/\r?\n/);
     lines.forEach(line => {
       let found = line.match(/^\s*stater\s+(.+)$/i);

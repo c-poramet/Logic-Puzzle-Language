@@ -82,14 +82,16 @@
       const leftVariable = model.variables?.find(variable => variable.name === left);
       const right = rightGroup ? rightRaw : leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw)) ? rightRaw : resolveName(rightRaw, model, subject);
       const rightVariable = model.variables?.find(variable => variable.name === right);
-      const leftIsDomainLiteral = rightVariable?.domain.some(value => normalize(value) === normalize(leftRaw));
-      const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw));
+      const leftIsDomainLiteral = rightVariable?.domain.some(value => normalize(value) === normalize(leftRaw))
+        || (node.left.kind === 'name' && normalize(leftRaw) === 'self' && rightVariable?.domain.some(value => normalize(value) === normalize(subject)));
+      const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw))
+        || (node.right.kind === 'name' && normalize(rightRaw) === 'self' && leftVariable?.domain.some(value => normalize(value) === normalize(subject)));
       const leftValue = node.left.kind === 'offset'
         ? (() => { const context = model.contexts?.find(item => normalize(item.name) === normalize(leftRaw)); const current = assignment[context?.name]; return context && current !== undefined ? contextOps.shift(context, current, node.left.amount) : UNASSIGNED; })()
-        : leftIsDomainLiteral ? leftRaw : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : effectiveValue(left, assignment, model) ?? left;
+        : leftIsDomainLiteral ? normalize(leftRaw) === 'self' ? subject : leftRaw : leftVariable && !Object.prototype.hasOwnProperty.call(assignment, left) ? UNASSIGNED : effectiveValue(left, assignment, model) ?? left;
       const rightValue = node.right.kind === 'offset'
         ? (() => { const context = model.contexts?.find(item => normalize(item.name) === normalize(rightRaw)); const current = assignment[context?.name]; return context && current !== undefined ? contextOps.shift(context, current, node.right.amount) : UNASSIGNED; })()
-        : rightIsDomainLiteral ? rightRaw : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : effectiveValue(right, assignment, model) ?? right;
+        : rightIsDomainLiteral ? normalize(rightRaw) === 'self' ? subject : rightRaw : rightVariable && !Object.prototype.hasOwnProperty.call(assignment, right) ? UNASSIGNED : effectiveValue(right, assignment, model) ?? right;
       if (leftValue === UNASSIGNED || rightValue === UNASSIGNED) return UNKNOWN;
       if (rightGroup) return rightGroup.values.some(value => normalize(value) === normalize(leftValue));
       if (leftGroup) return leftGroup.values.some(value => normalize(value) === normalize(rightValue));
@@ -192,7 +194,7 @@
     const threshold = Number.isInteger(model.options?.threshold) ? model.options.threshold : Infinity;
     const assignment = {};
     const typeNames = model.types;
-    const exactOneEach = model.staters.length === typeNames.length;
+    const exactOneEach = model.options?.exactOneEach !== false && model.staters.length === typeNames.length;
     const counts = Object.fromEntries(typeNames.map(type => [type, 0]));
     const subjects = new Map(model.staters.map(value => [normalize(value), value]));
     const statementFor = subject => model.statements.filter(statement => {

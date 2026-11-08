@@ -22,7 +22,7 @@
     const domains = Object.fromEntries(variables.map(variable => [variable.name, variable.domain.slice()]));
     const statementsById = Object.fromEntries(model.statements.map(statement => [statement.id, statement]));
     const constraints = [];
-    if (model.staters.length === model.types.length) {
+    if (model.options?.exactOneEach !== false && model.staters.length === model.types.length) {
       constraints.push({
         kind: 'cardinality',
         operator: 'exactly',

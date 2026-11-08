@@ -382,9 +382,11 @@ C : A == beta or A == gamma
     match = line.match(/^threshold\s*=\s*(\d+)$/i);
     if (match) return `Stops world search after ${match[1]} surviving result${match[1] === '1' ? '' : 's'}; this may mark the result as truncated.`;
     match = line.match(/^generate\s+statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);
-    if (match) return `Asks LPL to derive statements for ${match[1].trim()}${/k-?map|--kmap/i.test(line) ? ' using compact Karnaugh-map-style boolean minimization' : ''}.`;
-    if (/^(?:together|jointly)\s+leave\s+exactly\s+/i.test(line)) return 'Requires the generated statements together to leave the requested number of possible identities.';
-    if (/^each\s+statement\s+alone\s+/i.test(line)) return 'Requires every generated statement by itself to leave the identity unresolved.';
+    if (match) return `Asks LPL to derive one statement for each of ${match[1].trim()}${/k-?map|--kmap/i.test(line) ? ' using compact Karnaugh-map-style boolean minimization' : ''}.`;
+    match = line.match(/^(?:together|jointly)\s+leave\s+exactly\s+(\d+)\s+possible\s+(.+?)\s+identit(?:y|ies)$/i);
+    if (match) return `Together, the generated statements must leave exactly ${match[1]} possible ${match[2].replace(/^the\s+/i, '').trim()} identities.`;
+    match = line.match(/^each\s+statement\s+alone\s+(?:leaves\s+(?:the\s+)?(.+?)\s+identit(?:y|ies)\s+unknown|is\s+insufficient)$/i);
+    if (match) return match[1] ? `Each generated statement alone must leave the ${match[1].replace(/^the\s+/i, '').trim()} identity unresolved, with more than one possibility.` : 'Each generated statement alone must leave the requested identity unresolved, with more than one possibility.';
     match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+is\s+(?:definitely\s+)?a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
     if (match) return `Requires ${match[1]} to be a ${match[2]} in every surviving world.`;
     match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+(?:remains|is)\s+unknown$/i);
@@ -395,7 +397,8 @@ C : A == beta or A == gamma
     if (match) return `Requires statements made by ${match[1]} roles to be ${match[2]}.`;
     if (line.startsWith('>')) {
       const command = line.slice(1).trim().replace(/\s+/g, ' ');
-      if (/^find\s+/i.test(command)) return `Asks the solver to list the possible values requested by ${command.slice(5)}.`;
+      match = command.match(/^find\s+(type|value|possible|impossible)?\s*(.*)$/i);
+      if (match) return `Asks the solver to list ${match[1] || 'the'} ${match[2] ? `for ${match[2]}` : 'assignments'}.`;
       if (/^try\s+/i.test(command)) return `Tests whether the proposed assignment ${command.slice(4)} is compatible with the surviving worlds.`;
       if (/^solve\s+/i.test(command)) return `Asks the solver to ${command.slice(6)}.`;
       return `Asks the solver to ${command}.`;

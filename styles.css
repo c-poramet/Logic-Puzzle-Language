@@ -1,3 +1,5 @@
+.workspace{height:calc(100vh - 142px);min-height:0!important}.panel,.editor-panel,.results-panel{min-height:0}.editor{min-height:0!important}
+@media(max-width:720px){.workspace{height:auto;min-height:auto!important}.editor{min-height:350px!important}}
 .workspace{gap:8px!important}
 .type-column-label{display:block;margin-top:3px;color:var(--text-dim);font-size:9px;font-weight:400;letter-spacing:.08em}.type-indicator{display:inline-block;padding:3px 7px;border:1px solid color-mix(in srgb,var(--clr-green) 38%,var(--border));border-radius:5px;background:color-mix(in srgb,var(--clr-green) 12%,transparent);color:var(--clr-green);font-weight:700}.example-card .example-types{color:var(--clr-green);font:700 var(--fs-2xs)/1.4 var(--font-mono);letter-spacing:.03em}
 *,*::before,*::after{box-sizing:border-box}

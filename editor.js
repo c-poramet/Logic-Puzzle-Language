@@ -113,6 +113,7 @@ C : A == beta or A == gamma
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
   let completionIndex = 0;
+  let completionTimer = 0;
   let fixIssue = null;
 
   source.value = localStorage.getItem('lpl.source') || example;
@@ -334,7 +335,7 @@ C : A == beta or A == gamma
     element.style.left = `${Math.min(rect.left + 44, window.innerWidth - 300)}px`;
     element.style.top = `${Math.min(rect.top + 34 + (line * 21) - source.scrollTop, window.innerHeight - 260)}px`;
   }
-  function closePopups() { autocomplete.hidden = true; fixes.hidden = true; fixIssue = null; }
+  function closePopups() { window.clearTimeout(completionTimer); autocomplete.hidden = true; fixes.hidden = true; fixIssue = null; }
   function buildCompletions() {
     const { word } = wordAt();
     if (window.LPLParser?.complete) return LPLParser.complete(source.value, source.selectionStart).map(item => ({ value: item.value, detail: item.detail }));
@@ -346,12 +347,18 @@ C : A == beta or A == gamma
   function showAutocomplete(manual = false) {
     const { word } = wordAt();
     if (!manual && !word) { autocomplete.hidden = true; return; }
-    completionItems = buildCompletions();
+    completionItems = buildCompletions().slice(0, 12);
     if (!completionItems.length) { autocomplete.hidden = true; return; }
     completionIndex = 0;
     autocomplete.innerHTML = `<div class="autocomplete-list">${completionItems.map((item, index) => `<button type="button" class="autocomplete-item${index === 0 ? ' selected' : ''}" data-index="${index}" role="option"><span>${escape(item.value)}</span><small>${escape(item.detail)}</small></button>`).join('')}</div><div class="autocomplete-hint">Enter or Tab to insert · Esc to close</div>`;
     autocomplete.hidden = false;
     positionPopup(autocomplete);
+  }
+  function scheduleAutocomplete() {
+    window.clearTimeout(completionTimer);
+    completionTimer = window.setTimeout(() => {
+      if (document.activeElement === source) showAutocomplete(false);
+    }, 90);
   }
   function acceptCompletion() {
     const item = completionItems[completionIndex];
@@ -387,7 +394,7 @@ C : A == beta or A == gamma
     source.value = lines.join('\n');
     source.dispatchEvent(new Event('input', { bubbles: true }));
   }
-  source.addEventListener('input', () => { localStorage.setItem('lpl.source', source.value); document.getElementById('badge').textContent = 'edited'; render(); });
+  source.addEventListener('input', () => { localStorage.setItem('lpl.source', source.value); document.getElementById('badge').textContent = 'edited'; render(); scheduleAutocomplete(); });
   source.addEventListener('click', () => { updatePosition(); closePopups(); render(); });
   source.addEventListener('scroll', syncScroll);
   source.addEventListener('select', render);
@@ -396,10 +403,35 @@ C : A == beta or A == gamma
     if ((event.ctrlKey || event.metaKey) && event.key === ' ') { event.preventDefault(); showAutocomplete(true); return; }
     if ((event.ctrlKey || event.metaKey) && event.key === '.') { event.preventDefault(); showFixes(); return; }
     if ((event.ctrlKey || event.metaKey) && event.key === '/') { event.preventDefault(); toggleComment(); return; }
+    if ((event.key === '(' || event.key === '{') && source.selectionStart === source.selectionEnd) {
+      const closing = event.key === '(' ? ')' : '}';
+      source.setRangeText(`${event.key}${closing}`, source.selectionStart, source.selectionEnd, 'end');
+      source.selectionStart -= 1;
+      source.selectionEnd = source.selectionStart;
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+      event.preventDefault();
+      return;
+    }
+    if ((event.key === ')' || event.key === '}') && source.selectionStart === source.selectionEnd && source.value[source.selectionStart] === event.key) {
+      source.selectionStart += 1;
+      source.selectionEnd = source.selectionStart;
+      event.preventDefault();
+      return;
+    }
     if (!autocomplete.hidden) {
       if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); completionIndex = (completionIndex + (event.key === 'ArrowDown' ? 1 : completionItems.length - 1)) % completionItems.length; showAutocomplete(true); return; }
       if (event.key === 'Enter' || event.key === 'Tab') { event.preventDefault(); acceptCompletion(); return; }
       if (event.key === 'Escape') { event.preventDefault(); closePopups(); return; }
+    }
+    if (event.key === 'Enter' && source.selectionStart === source.selectionEnd) {
+      const before = source.value.slice(0, source.selectionStart);
+      const currentLine = before.split('\n').pop() || '';
+      const indent = (currentLine.match(/^\s*/) || [''])[0];
+      const extraIndent = /(?:\:\s*|\bthen\s*)$/i.test(currentLine) ? '  ' : '';
+      source.setRangeText(`\n${indent}${extraIndent}`, source.selectionStart, source.selectionEnd, 'end');
+      source.dispatchEvent(new Event('input', { bubbles: true }));
+      event.preventDefault();
+      return;
     }
     if (event.key === 'Tab') { event.preventDefault(); source.setRangeText('  ', source.selectionStart, source.selectionEnd, 'end'); source.dispatchEvent(new Event('input', { bubbles: true })); }
   });

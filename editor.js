@@ -110,7 +110,7 @@ C : A == beta or A == gamma
   >find type All
   >find value 1:` }
     ];
-  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
+  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'together', 'jointly', 'leave', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'is', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
@@ -172,8 +172,8 @@ C : A == beta or A == gamma
     }).join('');
   }
   function classify(token) {
-    if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(token)) return 'syntax-section';
-    if (/^(stater|type|types|may|repeat|var|rule|constraint|policy|case|group|exactly|atleast|atmost|threshold|find|solve|try|value|self|if|elseif|else|then|end|on|true|false|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
+    if (/^(SETUP|STATEMENTS|SOLVE|GOALS)$/i.test(token)) return 'syntax-section';
+    if (/^(stater|type|types|may|repeat|var|role|truthful|lying|says|rule|constraint|policy|case|group|exactly|atleast|atmost|threshold|find|solve|try|generate|statements|together|jointly|leave|possible|identities|each|alone|insufficient|unknown|is|value|self|if|elseif|else|then|end|on|true|false|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
     if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
     if (/^(<=>|=>|==|!=|:=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
     return 'syntax-name';
@@ -202,14 +202,19 @@ C : A == beta or A == gamma
     lines.forEach((raw, index) => {
       const text = raw.replace(/#.*/, '').trim();
       if (!text) return;
-      if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(text)) { mode = text.toUpperCase(); return; }
+      if (/^(SETUP|STATEMENTS|SOLVE|GOALS)$/i.test(text)) { mode = text.toUpperCase(); return; }
       if (mode === 'SETUP') {
-        if (/^stater\s+/i.test(text) || /^type\s+/i.test(text) || /^types\s+may\s+repeat$/i.test(text) || /^var\s+/i.test(text) || /^policy\s+\w+\s*:\s*$/i.test(text) || /^[A-Za-z_]\w*\s*=>\s*(?:true|false)$/i.test(text) || /^(?:rule|constraint)\s+\w+\s+(?:made\s+)?(?:a\s+)?(?:true|false)\s+statement$/i.test(text) || /^case\s+/i.test(text) || /^group\s+/i.test(text) || /^(?:exactly|atleast|atmost)\s+\d+\s+of\s+/i.test(text) || /^(?:if|elseif)\s+\w+\s+then$/i.test(text) || /^(?:else|end)$/i.test(text) || /^(?:[^:]+):=\s*[\w,\s]+$/i.test(text) || /^threshold\s*=\s*\d+$/i.test(text)) return;
+        if (/^stater\s+/i.test(text) || /^type\s+/i.test(text) || /^types\s+may\s+repeat$/i.test(text) || /^var\s+/i.test(text) || /^role\s+\w+\s+is\s+(?:truthful|lying|true|false)$/i.test(text) || /^policy\s+\w+\s+(?:says\s+(?:true|false)|:)$/i.test(text) || /^[A-Za-z_]\w*\s*=>\s*(?:true|false)$/i.test(text) || /^(?:rule|constraint)\s+\w+\s+(?:made\s+)?(?:a\s+)?(?:true|false)\s+statement$/i.test(text) || /^case\s+/i.test(text) || /^group\s+/i.test(text) || /^(?:exactly|atleast|atmost)\s+\d+\s+of\s+/i.test(text) || /^(?:if|elseif)\s+\w+\s+then$/i.test(text) || /^(?:else|end)$/i.test(text) || /^(?:[^:]+):=\s*[\w,\s]+$/i.test(text) || /^threshold\s*=\s*\d+$/i.test(text)) return;
         issues.push({ line: index + 1, message: 'Expected a supported SETUP declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
+      if (mode === 'GOALS') {
+        if (/^(?:generate\s+statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|exactly\s+\d+\s+of\s+)/i.test(text)) return;
+        issues.push({ line: index + 1, message: 'Expected a supported GOALS declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
+        return;
+      }
       if (text.startsWith('>')) {
-        if (!/^>\s*(find|solve|try)\b/i.test(text)) issues.push({ line: index + 1, message: 'Unknown command. Try find, solve, or try.', from: 0, to: raw.length, fixes: [{ label: 'Change to find', text: '>find type All' }] });
+        if (!/^>\s*(find|solve|try|generate)\b/i.test(text)) issues.push({ line: index + 1, message: 'Unknown command. Try find, solve, try, or generate.', from: 0, to: raw.length, fixes: [{ label: 'Change to find', text: '>find type All' }] });
         return;
       }
       if (mode !== 'STATEMENTS') {
@@ -270,7 +275,7 @@ C : A == beta or A == gamma
   function translateLine(rawLine, references) {
     const line = rawLine.replace(/#.*/, '').trim();
     if (!line) return 'Blank line: no puzzle rule is declared here.';
-    if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(line)) return `${line.toUpperCase()} starts the ${line.toLowerCase()} section.`;
+    if (/^(SETUP|STATEMENTS|SOLVE|GOALS)$/i.test(line)) return `${line.toUpperCase()} starts the ${line.toLowerCase()} section.`;
     let match = line.match(/^stater\s+(.+)$/i);
     if (match) return `Declares ${match[1]} as people who can make statements.`;
     match = line.match(/^type\s+(.+)$/i);
@@ -284,11 +289,18 @@ C : A == beta or A == gamma
     if (match) return `Groups ${match[2]} under the name ${match[1]}.`;
     match = line.match(/^policy\s+([A-Za-z_][A-Za-z0-9_]*)/i);
     if (match) return `Starts the truth policy for the ${match[1]} type.`;
+    match = line.match(/^role\s+([A-Za-z_][A-Za-z0-9_]*)\s+is\s+(truthful|lying|true|false)$/i);
+    if (match) return `Declares ${match[1]} statements to be ${/^(truthful|true)$/i.test(match[2]) ? 'true' : 'false'}.`;
+    match = line.match(/^policy\s+([A-Za-z_][A-Za-z0-9_]*)\s+says\s+(true|false)$/i);
+    if (match) return `Declares the ${match[1]} role's statements to be ${match[2].toLowerCase()}.`;
     match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*=>\s*(true|false)$/i);
     if (match) return `When the context is ${match[1]}, this policy requires statements to be ${match[2]}.`;
     if (/^(?:else|end)$/i.test(line)) return `${line.toLowerCase()} ends the current conditional setup block.`;
     match = line.match(/^(exactly|atleast|atmost)\s+(\d+)\s+of\s+(.+?)\s*==\s*(\w+)$/i);
     if (match) return `Requires ${match[1]} ${match[2]} of ${match[3]} to have type or value ${match[4]}.`;
+    if (/^generate\s+statements?\s+for\s+/i.test(line)) return 'Asks LPL to search for statements for the named speakers.';
+    if (/^(?:together|jointly)\s+leave\s+exactly\s+/i.test(line)) return 'Requires the generated statements together to leave the requested number of possible identities.';
+    if (/^each\s+statement\s+alone\s+/i.test(line)) return 'Requires every generated statement by itself to leave the identity unresolved.';
     if (line.startsWith('>')) return `Asks the solver to ${line.slice(1).trim().replace(/\s+/g, ' ')}.`;
     match = line.match(/^(?:\d+\s*:\s*)?([^:]+?)\s*:\s*(.+)$/);
     if (match) {

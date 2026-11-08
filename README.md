@@ -571,7 +571,37 @@ Blank comparison statements can be synthesized with a bounded brute-force query:
 >solve 1: brute
 ```
 
-The current synthesis explores single `==` and `!=` comparisons over declared variables, `self`, and declared values. Larger partial-expression synthesis remains future work.
+The current synthesis explores single `==` and `!=` comparisons plus bounded `not`, `and`, and `or` expressions over declared variables, `self`, and declared values.
+
+## Generate statements
+
+LPL can search for several statements that satisfy requirements about the resulting possibility space. Role truth behavior is explicit, so names such as `god` and `knave` do not acquire special meaning accidentally:
+
+```lpl
+SETUP
+stater A B
+type god knight demon knave
+types may repeat
+role god is truthful
+policy knight says true
+role demon is lying
+policy knave says false
+
+GOALS
+generate statements for A B
+together leave exactly 2 possible god identities
+each statement alone is insufficient
+exactly 1 of A B is a god
+
+SOLVE
+>generate statements for A B
+```
+
+The generator searches a bounded set of comparisons and small boolean expressions. It keeps a pair only when the statements together satisfy the declared goals and each statement alone leaves the requested identity ambiguous. The result shows the statements, surviving worlds, possible identities, and the individual evidence for each statement.
+
+The equivalent role policy spellings are `role god is truthful`, `role demon is lying`, `policy god says true`, and `policy demon says false`. The existing context form, `policy type:` followed by context values, keeps its original meaning.
+
+Generation is deliberately bounded and deterministic. Search limits prevent a large expression space from freezing the browser; when a limit is reached, the result is marked as truncated and is not a proof that no other statement exists. Existing `>solve <id>: brute` behavior remains available for one blank statement.
 
 An optional setup threshold bounds enumeration:
 
@@ -593,7 +623,7 @@ When the limit is reached, the result reports `threshold reached` and is marked 
 
 ## Expansion roadmap
 
-The next implementation layers are general finite-domain variables, cardinality constraints, propagation/search, case and time contexts, statement references, blank-statement synthesis, and source-linked explanations. Planned syntax is documented as unsupported until its parser, solver, tests, and editor support exist.
+The next implementation layers are deeper expression search, richer identity projections, source-linked candidate explanations, and broader natural-language goal aliases. The current bounded statement generator is supported by the parser, solver, renderer, tests, and editor.
 
 ## Development
 

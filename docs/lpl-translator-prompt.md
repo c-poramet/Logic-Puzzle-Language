@@ -13,10 +13,18 @@ type <type> <type> ...
 var <name> in {<value>, <value>, ...}
 case <name> <value> <value> ... wrap
 group <name> = {<value>, <value>, ...}
+role <type> is truthful|lying
+policy <type> says true|false
+
+GOALS
+generate statements for <stater> <stater> ...
+together leave exactly <N> possible <role> identities
+each statement alone is insufficient
 
 STATEMENTS
 <subject> : <expression>
 >find type All
+>generate statements for <stater> <stater> ...
 ```
 
 Supported expressions currently contain:
@@ -69,7 +77,7 @@ Supported commands include:
 17. Translate “exactly N”, “at least N”, and “at most N” into `exactly N of ... == value`, `atleast N of ... == value`, and `atmost N of ... == value`.
 18. Translate “if ... then ...” with `=>` and “if and only if” with `<=>`; preserve parentheses around each proposition.
 19. Use `case ... wrap` and `group ... = {...}` for ordered cyclic contexts such as days of the week. Use offset comparisons such as `DAY - 1 == L_days`.
-20. Do not emit procedural `if`/`elseif`, `on` statements, questions, or blank-statement synthesis yet; report them as unsupported unless the requested puzzle can be represented with the supported context forms.
+20. Do not emit procedural `if`/`elseif` or `on` statements unless the requested puzzle needs their existing supported context forms. Blank-statement synthesis and bounded multi-statement generation are now supported through `>solve <id>: brute` and `GOALS`/`>generate`.
 21. Use numbered statements and `if <id>: then ...` only when the referenced proposition is explicitly present. Use `_` for an anonymous subject or hole only when its missing content is intentional and report that assumption.
 22. Use declarative context rules in `SETUP` when a group determines stater types: `if <group> then`, assignments with `:=`, optional `elseif`/`else`, and `end`.
 23. Use question blocks only when the puzzle explicitly restricts allowed answers. Write `? : <proposition>` followed by indented `_ : positive`, `_ : negative`, or `_ : blank` lines.
@@ -77,6 +85,9 @@ Supported commands include:
 25. Translate context-dependent types with `policy <type>:` followed by indented `<context-value> => true|false` entries. The context name and values are ordinary puzzle-defined identifiers; do not hard-code names such as `WAKE` or `ASLEEP` in the engine. Do not use a policy unless the puzzle explicitly defines how that type behaves in each context.
 26. Translate “yesterday”, “tomorrow”, or equivalent finite-context references with `on <context> - 1` or `on <context> + 1`; use `wrap` only when the source explicitly describes a cyclic context.
 27. Use `>solve <id>: brute` only for a blank statement and report that the current implementation synthesizes bounded single comparisons only.
+28. Use explicit role truth declarations for role-based puzzles. `role god is truthful` and `policy demon says false` are equivalent constant truth policies; do not infer truth behavior from a role name alone.
+29. Use a `GOALS` section or `>generate statements for ...` when the puzzle asks LPL to find statements rather than evaluate supplied statements. `together leave exactly N possible X identities` measures the identity projection after all generated statements are applied.
+30. Interpret `each statement alone is insufficient` as requiring more than one possible identity for every individual generated statement. Report bounded-search truncation as a limitation, not as proof of impossibility.
 
 For a puzzle where several people share one hidden finite state, declare one `case` variable and reference it from each statement. For example, use `case condition present absent` when the source says that the people were in the same one of two conditions. Do not create separate state variables unless the source says their states may differ.
 

@@ -9,6 +9,7 @@ require('../lpl/explanations.js');
 require('../lpl/search.js');
 const propagate = require('../lpl/propagate.js');
 const parser = require('../lpl/parser.js');
+require('../lpl/synthesis.js');
 const solver = require('../lpl/solver.js');
 
 const example = `SETUP
@@ -295,9 +296,6 @@ each statement alone is insufficient
 god and knight statements are true
 demon and knave statements are false
 exactly 1 of A B is a god
-STATEMENTS
-A : A == god
-B : B != god
 SOLVE
 >generate statements for A B`);
 assert.deepStrictEqual(synthesisFoundationModel.truthPolicies, {
@@ -315,10 +313,14 @@ assert.deepStrictEqual(synthesisFoundationModel.goals.map(goal => goal.kind), [
 	'cardinality'
 ]);
 const synthesisFoundationResult = solver.solve(synthesisFoundationModel);
-assert.strictEqual(synthesisFoundationResult.count, 3);
+assert.strictEqual(synthesisFoundationResult.count, 16);
 const synthesisCommand = solver.query(synthesisFoundationResult, synthesisFoundationModel.commands[0]);
 assert.deepStrictEqual(synthesisCommand.synthesis.subjects, ['A', 'B']);
-assert.strictEqual(synthesisCommand.synthesis.supported, false);
+assert.strictEqual(synthesisCommand.synthesis.supported, true);
+assert.ok(synthesisCommand.synthesis.tuples.length > 0);
+assert.deepStrictEqual(synthesisCommand.synthesis.tuples[0].possibleIdentities, ['A', 'B']);
+assert.strictEqual(synthesisCommand.synthesis.tuples[0].checks.jointPossibleIdentities, true);
+assert.strictEqual(synthesisCommand.synthesis.tuples[0].checks.eachAloneInsufficient, true);
 
 const thresholdModel = parser.parse(`SETUP
 stater A B C
@@ -342,6 +344,8 @@ STATEMENTS
 `;
 const completionValues = parser.complete(completionSource, completionSource.length).map(item => item.value);
 assert.ok(['Aimee', 'thief', 'DAY', 'L_days', '1:'].every(value => completionValues.includes(value)));
+const goalCompletionValues = parser.complete('GOA', 3).map(item => item.value);
+assert.ok(goalCompletionValues.includes('GOALS'));
 
 const statementQueryModel = parser.parse(`SETUP
 stater A

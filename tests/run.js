@@ -3,6 +3,7 @@
 const assert = require('assert');
 require('../lpl/model.js');
 const constraints = require('../lpl/constraints.js');
+const propagate = require('../lpl/propagate.js');
 const parser = require('../lpl/parser.js');
 const solver = require('../lpl/solver.js');
 
@@ -71,4 +72,13 @@ B : B == alpha
 const cardinalityResult = solver.solve(cardinalityModel);
 assert.strictEqual(cardinalityModel.cardinalityRules[0].operator, 'exactly');
 assert.strictEqual(cardinalityResult.count, 4);
+
+const propagated = propagate.run({
+	variables: [{ name: 'x', domain: ['alpha'] }, { name: 'y', domain: ['alpha', 'beta'] }],
+	cardinalityRules: [{ operator: 'exactly', amount: 1, variables: ['x', 'y'], value: 'alpha', line: 1 }]
+});
+assert.deepStrictEqual([...propagated.domains.x], ['alpha']);
+assert.deepStrictEqual([...propagated.domains.y], ['beta']);
+assert.strictEqual(propagated.contradiction, null);
+assert.ok(propagated.reductions > 0);
 console.log('LPL parser and solver tests passed.');

@@ -55,7 +55,7 @@ atleast 2 of A B C == gamma
 atmost 1 of A B C == beta
 ```
 
-The rule is checked against every candidate world. Propagation-based pruning will be added next; the current implementation keeps the exhaustive fallback for correctness.
+The rule is checked against every candidate world and also participates in a first domain-propagation pass. The solver still keeps exhaustive search as a correctness fallback, while reporting propagation rounds and reductions in its result metadata.
 
 ## Commands
 

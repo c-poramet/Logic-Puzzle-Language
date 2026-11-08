@@ -70,7 +70,12 @@
       const key = normalize(statement.subject);
       return key === normalize(subject) || subjects.get(key) === subject;
     });
-    const variables = model.variables || model.staters.map(name => ({ name, kind: 'stater', domain: typeNames }));
+    const propagated = root.LPLPropagate?.run(model) || { domains: {}, rounds: 0, reductions: 0, contradiction: null };
+    if (propagated.contradiction) return { model, solutions, count: 0, exactOneEach, statistics: propagated };
+    const variables = (model.variables || model.staters.map(name => ({ name, kind: 'stater', domain: typeNames }))).map(variable => ({
+      ...variable,
+      domain: propagated.domains[variable.name] ? [...propagated.domains[variable.name]] : variable.domain
+    }));
     const visit = index => {
       if (index === variables.length) {
         if (exactOneEach && typeNames.some(type => counts[type] !== 1)) return;
@@ -96,7 +101,7 @@
       }
     };
     visit(0);
-    return { model, solutions, count: solutions.length, exactOneEach };
+    return { model, solutions, count: solutions.length, exactOneEach, statistics: propagated };
   }
 
   function query(result, command) {

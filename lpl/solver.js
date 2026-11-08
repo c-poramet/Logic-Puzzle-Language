@@ -105,6 +105,24 @@
     }))(values, rule.amount, rule.operator);
   }
 
+  function conditionalRulesSatisfied(model, assignment) {
+    for (const rule of model.rules || []) {
+      let selected = null;
+      for (const branch of rule.branches) {
+        if (branch.condition == null) { selected = branch; break; }
+        const group = Object.values(model.groups || {}).find(item => normalize(item.name) === normalize(branch.condition));
+        const context = (model.contexts || []).find(item => group && group.values.some(value => normalize(value) === normalize(assignment[item.name])));
+        if (context) { selected = branch; break; }
+      }
+      if (!selected) continue;
+      for (const item of selected.assignments) {
+        const name = resolveName(item.name, model, item.name);
+        if (normalize(assignment[name]) !== normalize(item.value)) return false;
+      }
+    }
+    return true;
+  }
+
   function solve(model) {
     const solutions = [];
     const explanations = explanationOps.create();
@@ -141,6 +159,7 @@
           explanations.add({ kind: 'cardinality', line: 0, message: 'A world did not assign exactly one stater to each type.' });
           return;
         }
+        if (!conditionalRulesSatisfied(model, assignment)) return;
         const failedRule = (model.cardinalityRules || []).find(rule => !satisfiesCardinality(rule, assignment, model));
         if (failedRule) {
           explanations.add({ kind: 'cardinality', line: failedRule.line, message: `${failedRule.operator} ${failedRule.amount} of ${failedRule.variables.join(', ')} must equal ${failedRule.value}.` });

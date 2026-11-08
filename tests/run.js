@@ -155,4 +155,22 @@ const supportResult = solver.solve(supportModel);
 assert.strictEqual(supportResult.count, 1);
 assert.strictEqual(supportResult.solutions[0].assignment.A, 'gamma');
 assert.ok(supportResult.statistics.reductions >= 1);
+
+const ruleModel = parser.parse(`SETUP
+stater Lion Unicorn
+type alpha beta
+case DAY Sun Mon Tue ... wrap
+group L_days = {Mon, Tue, Wed}
+if L_days then
+Lion := beta
+Unicorn := alpha
+else
+Lion, Unicorn := alpha, beta
+end
+STATEMENTS
+_ : _`);
+const ruleResult = solver.solve(ruleModel);
+assert.strictEqual(ruleModel.rules.length, 1);
+assert.strictEqual(ruleResult.count, 7);
+assert.ok(ruleResult.solutions.every(solution => solution.assignment.Lion !== solution.assignment.Unicorn));
 console.log('LPL parser and solver tests passed.');

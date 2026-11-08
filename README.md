@@ -75,7 +75,18 @@ STATEMENTS
 Lion : DAY - 1 == L_days
 ```
 
-`wrap` makes offsets circular. The current context slice supports named groups and offset comparisons; procedural `if`/`elseif` blocks and richer `on` statements remain future syntax.
+`wrap` makes offsets circular. Context groups can drive declarative assignments:
+
+```lpl
+if L_days then
+	Lion := beta
+	Unicorn := alpha
+else
+	Lion, Unicorn := alpha, beta
+end
+```
+
+The first matching branch applies to each complete world. Richer `on` statements and arbitrary procedural expressions remain future syntax.
 
 Statements can be numbered and referenced conditionally:
 

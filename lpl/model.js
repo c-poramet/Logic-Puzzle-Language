@@ -39,6 +39,7 @@
       constraints,
       contexts: (model.caseDeclarations || []).map(context => ({ ...context, values: context.values.slice() })),
       groups: Object.fromEntries((model.groups || []).map(group => [group.name, { ...group, values: group.values.slice() }])),
+      rules: (model.rules || []).map(rule => ({ ...rule, branches: rule.branches.map(branch => ({ ...branch, assignments: branch.assignments.map(assignment => ({ ...assignment })) })) })),
       statementsById,
       diagnostics: [],
       variable(name) {

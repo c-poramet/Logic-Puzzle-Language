@@ -72,7 +72,8 @@
   function parse(source) {
     const lines = source.split(/\r?\n/);
     let section = '';
-    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], statements: [], commands: [], options: {} };
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], statements: [], commands: [], options: {} };
+    let activeRule = null;
     lines.forEach((raw, index) => {
       const line = index + 1;
       const text = raw.replace(/#.*/, '').trim();
@@ -81,6 +82,26 @@
       if (upper === 'SETUP' || upper === 'STATEMENTS') { section = upper; return; }
       if (upper === 'SOLVE') { section = 'SOLVE'; return; }
       if (section === 'SETUP') {
+        let ruleMatch = text.match(/^if\s+([A-Za-z_][A-Za-z0-9_]*)\s+then$/i);
+        if (ruleMatch) {
+          activeRule = { branches: [{ condition: ruleMatch[1], assignments: [] }], line };
+          model.rules.push(activeRule);
+          return;
+        }
+        ruleMatch = text.match(/^elseif\s+([A-Za-z_][A-Za-z0-9_]*)\s+then$/i);
+        if (ruleMatch && activeRule) { activeRule.branches.push({ condition: ruleMatch[1], assignments: [] }); return; }
+        if (/^else$/i.test(text) && activeRule) { activeRule.branches.push({ condition: null, assignments: [] }); return; }
+        if (/^end$/i.test(text) && activeRule) { activeRule = null; return; }
+        if (activeRule) {
+          const assignment = text.match(/^([^:]+?)\s*:=\s*(.+)$/);
+          if (assignment) {
+            const names = assignment[1].split(/[\s,]+/).filter(Boolean);
+            const values = assignment[2].split(/[\s,]+/).filter(Boolean);
+            if (names.length !== values.length) throw new ErrorType('Conditional assignments need one type per stater', line);
+            activeRule.branches.at(-1).assignments.push(...names.map((name, index) => ({ name, value: values[index], line })));
+            return;
+          }
+        }
         let match = text.match(/^stater\s+(.+)$/i);
         if (match) { model.staters.push(...match[1].split(/[\s,]+/).filter(Boolean)); return; }
         match = text.match(/^type\s+(.+)$/i);

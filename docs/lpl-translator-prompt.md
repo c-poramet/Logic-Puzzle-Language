@@ -70,6 +70,7 @@ Supported commands include:
 19. Use `case ... wrap` and `group ... = {...}` for ordered cyclic contexts such as days of the week. Use offset comparisons such as `DAY - 1 == L_days`.
 20. Do not emit procedural `if`/`elseif`, `on` statements, questions, or blank-statement synthesis yet; report them as unsupported unless the requested puzzle can be represented with the supported context forms.
 21. Use numbered statements and `if <id>: then ...` only when the referenced proposition is explicitly present. Use `_` for an anonymous subject or hole only when its missing content is intentional and report that assumption.
+22. Use declarative context rules in `SETUP` when a group determines stater types: `if <group> then`, assignments with `:=`, optional `elseif`/`else`, and `end`.
 
 ## Required response format
 

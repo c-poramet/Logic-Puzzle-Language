@@ -245,6 +245,12 @@ C : A == beta or A == gamma
   }
   function classify(token) {
     if (/^(SETUP|STATEMENTS|SOLVE|GOALS)$/i.test(token)) return 'syntax-section';
+    if (/^(stater|type|var|role|policy|case|group|rule|constraint|threshold)$/i.test(token)) return 'syntax-declaration';
+    if (/^(find|solve|try|generate|using|kmap|k-map)$/i.test(token)) return 'syntax-command';
+    if (/^(together|jointly|leave|possible|identities|each|alone|insufficient|unknown|definitely|remains|exactly|atleast|atmost)$/i.test(token)) return 'syntax-goal';
+    if (/^(may|repeat|if|elseif|else|then|end|on|wrap)$/i.test(token)) return 'syntax-structural';
+    if (/^(true|false|positive|negative|blank|alpha|beta|gamma)$/i.test(token)) return 'syntax-literal';
+    if (/^self$/i.test(token)) return 'syntax-self';
     if (/^(stater|type|types|may|repeat|var|role|truthful|lying|says|rule|constraint|policy|case|group|exactly|atleast|atmost|threshold|find|solve|try|generate|statements|using|kmap|k-map|together|jointly|leave|possible|identities|each|alone|insufficient|unknown|definitely|remains|is|value|self|if|elseif|else|then|end|on|true|false|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
     if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
     if (/^(<=>|=>|==|!=|:=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
@@ -525,11 +531,20 @@ C : A == beta or A == gamma
     closePopups();
   }
   function toggleComment() {
+    const selectionStart = source.selectionStart;
+    const selectionEnd = source.selectionEnd;
+    const selectionDirection = source.selectionDirection;
     const lines = source.value.split('\n');
     const current = lineAt().index;
-    lines[current] = /^\s*#/.test(lines[current]) ? lines[current].replace(/^(\s*)#\s?/, '$1') : `# ${lines[current]}`;
+    const originalLine = lines[current];
+    const nextLine = /^\s*#/.test(originalLine) ? originalLine.replace(/^(\s*)#\s?/, '$1') : `# ${originalLine}`;
+    const delta = nextLine.length - originalLine.length;
+    const lineStart = lines.slice(0, current).reduce((total, line) => total + line.length + 1, 0);
+    const preservePosition = position => Math.max(0, position >= lineStart ? position + delta : position);
+    lines[current] = nextLine;
     source.value = lines.join('\n');
     source.dispatchEvent(new Event('input', { bubbles: true }));
+    source.setSelectionRange(preservePosition(selectionStart), preservePosition(selectionEnd), selectionDirection);
   }
   source.addEventListener('input', () => { localStorage.setItem('lpl.source', source.value); document.getElementById('badge').textContent = 'edited'; render(); scheduleAutocomplete(); });
   source.addEventListener('click', () => { updatePosition(); closePopups(); render(); });

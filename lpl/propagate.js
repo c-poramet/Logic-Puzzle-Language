@@ -41,7 +41,7 @@
       return [];
     };
     const statementSupport = statement => {
-      if (!evaluate || statement.subject.trim() === '_' || statement.expr.kind === 'hole') return;
+      if (!evaluate || statement.subject.trim() === '_' || statement.expr.kind === 'hole' || (model.rules || []).length || Object.keys(model.policies || {}).length) return;
       const subject = model.staters.find(name => normalize(name) === normalize(statement.subject) || normalize(name).startsWith(normalize(statement.subject)));
       if (!subject || !domains[subject]) return;
       const references = [...new Set(namesIn(statement.expr))].filter(name => !['self'].includes(normalize(name)));

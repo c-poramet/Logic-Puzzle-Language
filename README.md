@@ -234,4 +234,6 @@ Run the dependency-free tests with:
 node tests/run.js
 ```
 
+The regression suite includes a dense integration puzzle combining wrapped contexts, declarative branches, cardinality, entity truth rules, questions, references, and focused queries in [tests/complex-puzzle.js](tests/complex-puzzle.js).
+
 Temporal cases, `case`/`group` declarations, question blocks, partial brute-force statements, and richer unknown propagation are not implemented yet. The parser, normalized model, constraint helpers, and evaluator are kept separate so those additions can extend the current browser-first architecture without changing the UI contract.

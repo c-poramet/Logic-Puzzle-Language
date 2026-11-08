@@ -79,8 +79,8 @@
       const leftGroup = node.left.kind === 'name' ? model.groups?.[node.left.value] : null;
       const rightGroup = node.right.kind === 'name' ? model.groups?.[node.right.value] : null;
       const left = leftGroup ? leftRaw : resolveName(leftRaw, model, subject);
-      const right = rightGroup ? rightRaw : resolveName(rightRaw, model, subject);
       const leftVariable = model.variables?.find(variable => variable.name === left);
+      const right = rightGroup ? rightRaw : leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw)) ? rightRaw : resolveName(rightRaw, model, subject);
       const rightVariable = model.variables?.find(variable => variable.name === right);
       const leftIsDomainLiteral = rightVariable?.domain.some(value => normalize(value) === normalize(leftRaw));
       const rightIsDomainLiteral = leftVariable?.domain.some(value => normalize(value) === normalize(rightRaw));

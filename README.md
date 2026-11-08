@@ -179,6 +179,13 @@ _ : A == alpha : A == beta
 
 Each expression receives its own generated statement ID. Colons inside `if 1: then ...` references are preserved.
 
+Statement IDs can also be written after an anonymous subject, and `-:` refers to the previous statement:
+
+```lpl
+_ 1: A == alpha
+_ : if -: then A == beta
+```
+
 Blank comparison statements can be synthesized with a bounded brute-force query:
 
 ```lpl

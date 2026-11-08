@@ -90,7 +90,7 @@
       const character = text[index];
       if ('([{'.includes(character)) depth++;
       else if (')]}'.includes(character)) depth--;
-      else if (character === ':' && depth === 0 && !/if\s+\d+\s*$/i.test(text.slice(start, index))) {
+      else if (character === ':' && depth === 0 && !/if\s+(?:\d+|-)\s*$/i.test(text.slice(start, index))) {
         parts.push(text.slice(start, index).trim());
         start = index + 1;
       }
@@ -203,15 +203,21 @@
       const match = numbered ? null : text.match(/^([^:]+?)\s*:\s*(.+)$/);
       if (!numbered && !match) throw new ErrorType('Expected "subject : statement"', line);
       const statementId = numbered ? Number(numbered[1]) : model.statements.length + 1;
-      const statementSubject = numbered ? '_' : match[1].trim();
+      const subjectMatch = numbered ? null : match[1].trim().match(/^(.+?)\s+(\d+)$/);
+      const statementSubject = numbered ? '_' : subjectMatch ? subjectMatch[1].trim() : match[1].trim();
+      const explicitSubjectId = subjectMatch ? Number(subjectMatch[2]) : null;
       const statementTexts = splitStatementExpressions(numbered ? numbered[2] : match[2]);
       statementTexts.forEach((statementText, offset) => {
         let expr;
-        const conditional = statementText.match(/^if\s+(\d+)\s*:?\s+then\s+(.+)$/i);
+        const conditional = statementText.match(/^if\s+(\d+|-)\s*:?\s+then\s+(.+)$/i);
         if (statementText === '_') expr = { kind: 'hole' };
-        else if (conditional) expr = { kind: 'implies', left: { kind: 'statementRef', id: Number(conditional[1]) }, right: expression(conditional[2], line) };
+        else if (conditional) {
+          const reference = conditional[1] === '-' ? model.statements.at(-1)?.id : Number(conditional[1]);
+          if (!reference) throw new ErrorType('Previous-statement reference has no previous statement', line);
+          expr = { kind: 'implies', left: { kind: 'statementRef', id: reference }, right: expression(conditional[2], line) };
+        }
         else expr = expression(statementText, line);
-        const statement = { id: offset ? model.statements.length + 1 : statementId, subject: statementSubject, expr, source: text, line };
+        const statement = { id: offset ? model.statements.length + 1 : explicitSubjectId || statementId, subject: statementSubject, expr, source: text, line };
         model.statements.push(statement);
         if (statement.subject === '?') {
           activeQuestion = { statementId: statement.id, statement, answers: [] };

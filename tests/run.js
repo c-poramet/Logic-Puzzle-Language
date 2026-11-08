@@ -304,4 +304,13 @@ STATEMENTS
 _ : A == alpha : A == beta`);
 assert.strictEqual(multipleModel.statements.length, 2);
 assert.deepStrictEqual(multipleModel.statements.map(statement => statement.id), [1, 2]);
+
+const shorthandModel = parser.parse(`SETUP
+stater A
+type alpha beta
+STATEMENTS
+_ 1: A == alpha
+_ : if -: then A == beta`);
+assert.strictEqual(shorthandModel.statements[0].id, 1);
+assert.strictEqual(shorthandModel.statements[1].expr.left.id, 1);
 console.log('LPL parser and solver tests passed.');

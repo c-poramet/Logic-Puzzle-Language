@@ -18,7 +18,7 @@ A : A == beta
 B : A == alpha
 C : A == beta or A == gamma
 >find type All`;
-  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'and', 'or', 'not', 'wrap'];
+  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'var', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'if', 'then', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
@@ -55,7 +55,7 @@ C : A == beta or A == gamma
   }
   function classify(token) {
     if (/^(SETUP|STATEMENTS|SOLVE)$/i.test(token)) return 'syntax-section';
-    if (/^(stater|type|var|case|group|exactly|atleast|atmost|threshold|find|solve|try|value|self|All|wrap)$/i.test(token)) return 'syntax-keyword';
+    if (/^(stater|type|var|case|group|exactly|atleast|atmost|threshold|find|solve|try|value|self|if|then|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
     if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
     if (/^(<=>|=>|==|!=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
     return 'syntax-name';
@@ -65,7 +65,7 @@ C : A == beta or A == gamma
     const code = commentAt < 0 ? line : line.slice(0, commentAt);
     const comment = commentAt < 0 ? '' : line.slice(commentAt);
     const parts = [];
-    const pattern = /<=>|=>|==|!=|[+-]\d+|\(|\)|:|>|[A-Za-z_][A-Za-z0-9_]*/g;
+    const pattern = /<=>|=>|==|!=|[+-]\d+|\d+|\(|\)|:|>|[A-Za-z_][A-Za-z0-9_]*/g;
     let last = 0;
     let match;
     while ((match = pattern.exec(code))) {

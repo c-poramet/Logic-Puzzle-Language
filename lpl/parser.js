@@ -129,7 +129,13 @@
       if (section !== 'STATEMENTS') throw new ErrorType('Statements must follow a STATEMENTS section', line);
       const match = text.match(/^(?:(\d+)\s*)?([^:]+?)\s*:\s*(.+)$/);
       if (!match) throw new ErrorType('Expected "subject : statement"', line);
-      model.statements.push({ id: match[1] ? Number(match[1]) : model.statements.length + 1, subject: match[2].trim(), expr: expression(match[3], line), source: text, line });
+      const statementText = match[3].trim();
+      let expr;
+      const conditional = statementText.match(/^if\s+(\d+)\s*:?\s+then\s+(.+)$/i);
+      if (statementText === '_') expr = { kind: 'hole' };
+      else if (conditional) expr = { kind: 'implies', left: { kind: 'statementRef', id: Number(conditional[1]) }, right: expression(conditional[2], line) };
+      else expr = expression(statementText, line);
+      model.statements.push({ id: match[1] ? Number(match[1]) : model.statements.length + 1, subject: match[2].trim(), expr, source: text, line });
     });
     if (!model.staters.length) throw new ErrorType('No staters declared');
     if (!model.types.length) throw new ErrorType('No types declared');

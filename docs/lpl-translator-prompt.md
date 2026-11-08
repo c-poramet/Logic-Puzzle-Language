@@ -30,6 +30,7 @@ Supported expressions currently contain:
 - parentheses
 - finite-domain variables declared with `var ... in {...}`
 - finite contexts, wrapped offsets, and named groups
+- numbered statements, conditional references, and anonymous holes
 
 Type semantics:
 
@@ -68,6 +69,7 @@ Supported commands include:
 18. Translate “if ... then ...” with `=>` and “if and only if” with `<=>`; preserve parentheses around each proposition.
 19. Use `case ... wrap` and `group ... = {...}` for ordered cyclic contexts such as days of the week. Use offset comparisons such as `DAY - 1 == L_days`.
 20. Do not emit procedural `if`/`elseif`, `on` statements, questions, or blank-statement synthesis yet; report them as unsupported unless the requested puzzle can be represented with the supported context forms.
+21. Use numbered statements and `if <id>: then ...` only when the referenced proposition is explicitly present. Use `_` for an anonymous subject or hole only when its missing content is intentional and report that assumption.
 
 ## Required response format
 

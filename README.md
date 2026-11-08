@@ -77,6 +77,15 @@ Lion : DAY - 1 == L_days
 
 `wrap` makes offsets circular. The current context slice supports named groups and offset comparisons; procedural `if`/`elseif` blocks and richer `on` statements remain future syntax.
 
+Statements can be numbered and referenced conditionally:
+
+```lpl
+1: A == alpha
+B : if 1: then A == beta
+```
+
+An anonymous statement can use `_` as its subject and/or a hole expression. Anonymous statements are evaluated for value but do not inherit an alpha/beta type restriction yet.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

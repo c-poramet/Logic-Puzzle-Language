@@ -5,6 +5,7 @@
   const UNKNOWN = null;
   const UNASSIGNED = root.LPLConstraints?.UNASSIGNED || Symbol('lpl.unassigned');
   const contextOps = root.LPLContexts || { shift: () => undefined };
+  const statementOps = root.LPLStatements || { get: (model, id) => model.statementsById?.[id] || null, isAnonymous: subject => String(subject).trim() === '_' };
   const logic = root.LPLConstraints || {
     and: (left, right) => left === false || right === false ? false : left === true && right === true ? true : UNKNOWN,
     or: (left, right) => left === true || right === true ? true : left === false && right === false ? false : UNKNOWN,
@@ -29,8 +30,16 @@
     throw new ErrorType(`Unknown name "${name}"`, 0);
   }
 
-  function evaluate(node, assignment, model, subject) {
-    if (node.kind === 'not') return logic.not(evaluate(node.value, assignment, model, subject));
+  function evaluate(node, assignment, model, subject, seen = new Set()) {
+    if (node.kind === 'hole') return UNKNOWN;
+    if (node.kind === 'statementRef') {
+      if (seen.has(node.id)) return UNKNOWN;
+      const statement = statementOps.get(model, node.id);
+      if (!statement) throw new ErrorType(`Unknown statement reference "${node.id}:"`, 0);
+      const nextSeen = new Set(seen); nextSeen.add(node.id);
+      return evaluate(statement.expr, assignment, model, statement.subject, nextSeen);
+    }
+    if (node.kind === 'not') return logic.not(evaluate(node.value, assignment, model, subject, seen));
     if (node.kind === 'name') return resolveName(node.value, model, subject);
     if (node.kind === 'compare') {
       const leftRaw = node.left.name || node.left.value;
@@ -55,8 +64,8 @@
       const equal = normalize(leftValue) === normalize(rightValue);
       return node.operator === '==' ? equal : !equal;
     }
-    const left = evaluate(node.left, assignment, model, subject);
-    const right = evaluate(node.right, assignment, model, subject);
+    const left = evaluate(node.left, assignment, model, subject, seen);
+    const right = evaluate(node.right, assignment, model, subject, seen);
     if (node.kind === 'and') return logic.and(left, right);
     if (node.kind === 'or') return logic.or(left, right);
     if (node.kind === 'implies') return logic.implies(left, right);
@@ -102,7 +111,7 @@
         if (exactOneEach && typeNames.some(type => counts[type] !== 1)) return;
         if ((model.cardinalityRules || []).some(rule => !satisfiesCardinality(rule, assignment, model))) return;
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
-        if (values.some(({ statement, value }) => !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value))) return;
+        if (values.some(({ statement, value }) => !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value))) return;
         solutions.push({ assignment: { ...assignment }, values });
         return;
       }

@@ -167,7 +167,10 @@ STATEMENTS
 Ork : (self == diurnal and condition == present) => witchdoctor == Ork
 Bork : ((self == diurnal and condition == present) or (self == nocturnal and condition == absent)) => witchdoctor == Bork
 
->find type All
+>find type Ork
+>find type Bork
+>find value witchdoctor
+>find value condition
 ```
 
 This is a faithful encoding of the supplied Ork/Bork statements. It produces one surviving world: both inhabitants are nocturnal, both were asleep, and Bork was the witch doctor.

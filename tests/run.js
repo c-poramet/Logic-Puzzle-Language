@@ -236,12 +236,17 @@ policy nocturnal:
 STATEMENTS
 Ork : (self == diurnal and condition == present) => witchdoctor == Ork
 Bork : ((self == diurnal and condition == present) or (self == nocturnal and condition == absent)) => witchdoctor == Bork
->find type All`);
+>find type Ork
+>find type Bork
+>find value witchdoctor
+>find value condition`);
 assert.deepStrictEqual(conditionalBeliefModel.variables.map(variable => variable.name), ['Ork', 'Bork', 'witchdoctor', 'condition']);
 assert.deepStrictEqual(conditionalBeliefModel.contexts[0].values, ['present', 'absent']);
 const conditionalBeliefResult = solver.solve(conditionalBeliefModel);
 assert.strictEqual(conditionalBeliefResult.count, 1);
 assert.deepStrictEqual(conditionalBeliefResult.solutions[0].assignment, { Ork: 'nocturnal', Bork: 'nocturnal', witchdoctor: 'Bork', condition: 'absent' });
+const conditionalBeliefQueries = conditionalBeliefModel.commands.map(command => solver.query(conditionalBeliefResult, command));
+assert.deepStrictEqual(conditionalBeliefQueries.map(query => query.choices[0].possible), [['nocturnal'], ['nocturnal'], ['Bork'], ['absent']]);
 
 const onModel = parser.parse(`SETUP
 stater L

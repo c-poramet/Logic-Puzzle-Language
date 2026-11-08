@@ -14,9 +14,12 @@
   const palette = document.getElementById('palette');
   const workspace = document.querySelector('.workspace');
   const splitter = document.getElementById('splitter');
+  const exampleModal = document.getElementById('example-modal');
+  const exampleGrid = document.getElementById('example-grid');
+  const closeExamples = document.getElementById('close-examples');
   const position = document.getElementById('position');
   const message = document.getElementById('message');
-  const example = `SETUP
+    const example = `SETUP
 stater Aimee Bob Calvin
 type alpha beta gamma
 STATEMENTS
@@ -24,6 +27,87 @@ A : A == beta
 B : A == alpha
 C : A == beta or A == gamma
 >find type All`;
+    const examples = [
+    { title: 'The Two Claims', type: 'Knights and knaves', difficulty: 'Warm-up', description: 'A compact truth-versus-lie puzzle with one statement per person.', source: `SETUP
+  stater Aimee Bob
+  type alpha beta
+
+  STATEMENTS
+  Aimee : self == beta
+  Bob : Aimee == beta
+
+  >find type All` },
+    { title: 'Three Voices', type: 'Three types', difficulty: 'Easy', description: 'Practice alpha, beta, gamma, and the default one-of-each distribution.', source: example },
+    { title: 'The Missing Muffin', type: 'Role assignment', difficulty: 'Medium', description: 'A finite role variable identifies which person made a false statement.', source: `SETUP
+  stater Aimee Bob Calvin
+  type alpha beta gamma
+  var thief in {Aimee, Bob, Calvin}
+  rule thief made a false statement
+
+  STATEMENTS
+  Aimee : Aimee == beta
+  Bob : Aimee == alpha
+  Calvin : Aimee == beta or Aimee == gamma
+
+  >find value thief` },
+    { title: 'Isle of Dreams', type: 'Shared-state policy', difficulty: 'Challenging', description: 'Diurnal and nocturnal truth policies share one awake/asleep context.', source: `SETUP
+  stater Ork Bork
+  type diurnal nocturnal
+  types may repeat
+  var witchdoctor in {Ork, Bork}
+  case state awake asleep
+
+  policy diurnal:
+    awake => true
+    asleep => false
+
+  policy nocturnal:
+    awake => false
+    asleep => true
+
+  STATEMENTS
+  Ork : (self == diurnal and state == awake) => witchdoctor == self
+  Bork : ((self == diurnal and state == awake) or (self == nocturnal and state == asleep)) => witchdoctor == self
+
+  >find type Ork
+  >find type Bork
+  >find value witchdoctor
+  >find value state` },
+    { title: 'The Rotating Day', type: 'Ordered context', difficulty: 'Medium', description: 'Use a wrapped case, a named group, and an offset comparison.', source: `SETUP
+  stater Lion Unicorn
+  type alpha beta
+  case day Mon Tue Wed Thu Fri Sat Sun wrap
+  group workdays = {Mon, Tue, Wed, Thu, Fri}
+
+  STATEMENTS
+  Lion : day - 1 == workdays
+  Unicorn : on Sun Lion == beta
+
+  >find value day` },
+    { title: 'Balanced Voices', type: 'Cardinality', difficulty: 'Hard', description: 'Explicitly require exactly two truthful and two lying speakers.', source: `SETUP
+  stater A B C D
+  type alpha beta
+  types may repeat
+  exactly 2 of A B C D == alpha
+
+  STATEMENTS
+  A : self == alpha
+  B : self == alpha
+  C : self == beta
+  D : self == beta
+
+  >find type All` },
+    { title: 'Echoed Evidence', type: 'Statement references', difficulty: 'Hard', description: 'Number a statement and use it as the condition for another claim.', source: `SETUP
+  stater A B
+  type alpha beta
+
+  STATEMENTS
+  1: A == alpha
+  B : if 1: then A == beta
+
+  >find type All
+  >find value 1:` }
+    ];
   const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
@@ -33,6 +117,30 @@ C : A == beta or A == gamma
 
   source.value = localStorage.getItem('lpl.source') || example;
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  function renderExamplePicker() {
+    if (!exampleGrid) return;
+    exampleGrid.innerHTML = examples.map((item, index) => `<button class="example-card" type="button" data-example-index="${index}"><span class="example-card-top"><span class="example-type">${escape(item.type)}</span><span class="example-difficulty">${escape(item.difficulty)}</span></span><strong>${escape(item.title)}</strong><span>${escape(item.description)}</span><small>Load puzzle</small></button>`).join('');
+  }
+  function openExamplePicker() {
+    if (!exampleModal) return;
+    renderExamplePicker();
+    exampleModal.hidden = false;
+    exampleGrid?.querySelector('button')?.focus();
+  }
+  function closeExamplePicker() {
+    if (exampleModal) exampleModal.hidden = true;
+  }
+  function loadExample(index) {
+    const selected = examples[index];
+    if (!selected) return;
+    closePopups();
+    closeExamplePicker();
+    source.value = selected.source;
+    source.dispatchEvent(new Event('input'));
+    source.focus();
+    source.setSelectionRange(0, 0);
+    render();
+  }
   const wordAt = () => {
     const start = source.selectionStart;
     const before = source.value.slice(0, start);
@@ -269,7 +377,11 @@ C : A == beta or A == gamma
   });
   autocomplete.addEventListener('mousedown', event => { const item = event.target.closest('[data-index]'); if (!item) return; event.preventDefault(); completionIndex = Number(item.dataset.index); acceptCompletion(); });
   fixes.addEventListener('mousedown', event => { const item = event.target.closest('[data-index]'); if (!item) return; event.preventDefault(); applyFix(Number(item.dataset.index)); });
-  document.getElementById('example').addEventListener('click', () => { closePopups(); source.value = example; source.dispatchEvent(new Event('input')); });
+  document.getElementById('example').addEventListener('click', openExamplePicker);
+  exampleGrid?.addEventListener('click', event => { const card = event.target.closest('[data-example-index]'); if (card) loadExample(Number(card.dataset.exampleIndex)); });
+  closeExamples?.addEventListener('click', closeExamplePicker);
+  exampleModal?.addEventListener('click', event => { if (event.target.matches('[data-close-examples]')) closeExamplePicker(); });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && exampleModal && !exampleModal.hidden) closeExamplePicker(); });
   document.getElementById('clear').addEventListener('click', () => { closePopups(); source.value = ''; source.dispatchEvent(new Event('input')); });
   document.getElementById('copy').addEventListener('click', async () => { await navigator.clipboard?.writeText(source.value); setMessage('Copied source'); });
   window.addEventListener('resize', syncScroll);

@@ -177,9 +177,10 @@ C : A == beta or A == gamma
 
   source.value = localStorage.getItem('lpl.source') || example;
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+  const declaredTypes = sourceText => sourceText.match(/^\s*type\s+(.+)$/im)?.[1]?.trim().split(/[\s,]+/).filter(Boolean).join(' · ') || 'not declared';
   function renderExamplePicker() {
     if (!exampleGrid) return;
-    exampleGrid.innerHTML = examples.map((item, index) => `<button class="example-card" type="button" data-example-index="${index}"><span class="example-card-top"><span class="example-type">${escape(item.type)}</span><span class="example-difficulty">${escape(item.difficulty)}</span></span><strong>${escape(item.title)}</strong><span>${escape(item.description)}</span><small>Load puzzle</small></button>`).join('');
+    exampleGrid.innerHTML = examples.map((item, index) => `<button class="example-card" type="button" data-example-index="${index}"><span class="example-card-top"><span class="example-type">${escape(item.type)}</span><span class="example-difficulty">${escape(item.difficulty)}</span></span><strong>${escape(item.title)}</strong><span>${escape(item.description)}</span><span class="example-types">Types: ${escape(declaredTypes(item.source))}</span><small>Load puzzle</small></button>`).join('');
   }
   function openExamplePicker() {
     if (!exampleModal) return;

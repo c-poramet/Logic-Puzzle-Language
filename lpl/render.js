@@ -29,7 +29,7 @@
       output.push(renderQuery(command));
       output.push('</div>');
     });
-    output.push('<div class="answer"><div class="answer-title">Surviving assignments</div><div class="table-wrap"><table class="table"><thead><tr>' + model.staters.map(name => `<th>${esc(name)}</th>`).join('') + '</tr></thead><tbody>' + result.solutions.slice(0, 50).map(solution => `<tr>${model.staters.map(name => `<td>${esc(solution.assignment[name])}</td>`).join('')}</tr>`).join('') + '</tbody></table></div></div>');
+    output.push('<div class="answer"><div class="answer-title">Surviving assignments</div><div class="table-wrap"><table class="table"><thead><tr>' + model.staters.map(name => `<th>${esc(name)}<small class="type-column-label">type</small></th>`).join('') + '</tr></thead><tbody>' + result.solutions.slice(0, 50).map(solution => `<tr>${model.staters.map(name => `<td><span class="type-indicator">${esc(solution.assignment[name])}</span></td>`).join('')}</tr>`).join('') + '</tbody></table></div></div>');
     if (result.explanations?.length) {
       output.push(`<details class="explanations"><summary>Why worlds were rejected <span>${result.explanations.length}</span></summary><div class="explanation-list">${result.explanations.slice(0, 20).map(entry => `<div class="explanation"><span class="explanation-kind">${esc(entry.kind)}</span>${entry.line ? `<span class="explanation-line">line ${entry.line}</span>` : ''}<span>${esc(entry.message)}</span></div>`).join('')}</div></details>`);
     }

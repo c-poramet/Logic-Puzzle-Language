@@ -281,7 +281,7 @@ C : A == beta or A == gamma
         return;
       }
       if (mode === 'GOALS') {
-        if (/^(?:generate\s+(?:\d+\s+)?statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|exactly\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
+        if (/^(?:generate\s+(?:\d+\s+)?statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|(?:exactly|atleast|atmost|at\s+least|at\s+most)\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
         issues.push({ line: index + 1, message: 'Expected a supported GOALS declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
@@ -379,6 +379,8 @@ C : A == beta or A == gamma
     if (match) return `Requires the person or object assigned to ${match[1]} to have made a ${match[2]} statement.`;
     match = line.match(/^(exactly|atleast|atmost)\s+(\d+)\s+of\s+(.+?)\s*==\s*(\w+)$/i);
     if (match) return `Requires ${match[1]} ${match[2]} of ${match[3]} to have type or value ${match[4]}.`;
+    match = line.match(/^(exactly|atleast|atmost|at\s+least|at\s+most)\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
+    if (match) return `Requires ${match[1]} ${match[2]} of ${match[3]} to be ${match[4]}.`;
     match = line.match(/^threshold\s*=\s*(\d+)$/i);
     if (match) return `Stops world search after ${match[1]} surviving result${match[1] === '1' ? '' : 's'}; this may mark the result as truncated.`;
     match = line.match(/^generate\s+(?:(\d+)\s+)?statements?\s+for\s+(.+?)(?:\s+(?:using\s+)?k-?map|\s+--kmap|\s+--method\s+k-?map)?$/i);

@@ -767,6 +767,26 @@ B and C are thieves
 
 The goal does not ask LPL to select one pair. It asks for statements that preserve all three pair possibilities while enforcing exactly two thieves in every surviving world.
 
+### At least and at most
+
+Use range goals when the puzzle gives a lower or upper bound rather than an exact count:
+
+```lpl
+GOALS
+generate statements for A B C D
+at least 1 of A B C D is a thief
+at most 2 of A B C D is a thief
+```
+
+This keeps worlds with one or two thieves and rejects worlds with zero or more than two. The compact aliases `atleast` and `atmost` are also accepted:
+
+```lpl
+atleast 1 of A B C D is a thief
+atmost 2 of A B C D is a thief
+```
+
+The generated statements are then tested only against the worlds that satisfy both bounds. As with `exactly`, the bound is a constraint on every surviving world, not a request to choose one particular thief.
+
 ### Requesting a number of statements
 
 Normally, LPL creates one statement for each named speaker:

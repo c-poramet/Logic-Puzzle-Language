@@ -341,6 +341,23 @@ assert.ok(identityGoalQuery.synthesis.tuples.length > 0);
 assert.strictEqual(identityGoalQuery.synthesis.tuples[0].checks.fixedIdentities, true);
 assert.strictEqual(identityGoalQuery.synthesis.tuples[0].checks.ambiguousIdentities, true);
 
+const rangedGoalModel = parser.parse(`SETUP
+stater A B C
+type thief innocent
+types may repeat
+GOALS
+generate statements for A B C
+at least 1 of A B C is a thief
+at most 2 of A B C is a thief
+SOLVE
+>generate statements for A B C`);
+assert.deepStrictEqual(rangedGoalModel.goals.slice(1).map(goal => ({ operator: goal.operator, amount: goal.amount, value: goal.value })), [
+	{ operator: 'atleast', amount: 1, value: 'thief' },
+	{ operator: 'atmost', amount: 2, value: 'thief' }
+]);
+const rangedGoalQuery = solver.query(solver.solve(rangedGoalModel), rangedGoalModel.commands[0]);
+assert.ok(rangedGoalQuery.synthesis.baseWorlds > 0);
+
 const kMapModel = parser.parse(`SETUP
 stater A B
 type god knight demon knave

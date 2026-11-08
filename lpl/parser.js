@@ -252,9 +252,9 @@
           model.goals.push({ kind: 'identity-ambiguous', subject: goalMatch[1], line });
           return;
         }
-        goalMatch = text.match(/^exactly\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
+        goalMatch = text.match(/^(exactly|atleast|atmost|at\s+least|at\s+most)\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
         if (goalMatch) {
-          model.goals.push({ kind: 'cardinality', operator: 'exactly', amount: Number(goalMatch[1]), variables: goalMatch[2].split(/[\s,]+/).filter(Boolean), value: goalMatch[3], line });
+          model.goals.push({ kind: 'cardinality', operator: goalMatch[1].replace(/\s+/g, '').toLowerCase(), amount: Number(goalMatch[2]), variables: goalMatch[3].split(/[\s,]+/).filter(Boolean), value: goalMatch[4], line });
           return;
         }
         goalMatch = text.match(/^(.+?)\s+statements?\s+are\s+(true|false)$/i);

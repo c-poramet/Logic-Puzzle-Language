@@ -109,8 +109,64 @@ C : A == beta or A == gamma
 
   >find type All
   >find value 1:` }
+    ,{ title: 'A Thief, B Unknown', type: 'Statement synthesis', difficulty: 'New', description: 'Force A to be the thief while B keeps more than one possible type.', source: `SETUP
+  stater A B
+  type thief innocent knight
+  types may repeat
+  role thief is truthful
+
+  GOALS
+  generate statements for A B
+  exactly 1 of A B is a thief
+  A is definitely a thief
+  B remains unknown
+
+  SOLVE
+  >generate statements for A B` }
+    ,{ title: 'One Hidden Thief', type: 'Statement synthesis', difficulty: 'New', description: 'Make exactly one person a thief while leaving both identities possible.', source: `SETUP
+  stater A B
+  type thief innocent
+  types may repeat
+  role thief is truthful
+
+  GOALS
+  generate statements for A B
+  exactly 1 of A B is a thief
+  together leave exactly 2 possible thief identities
+  each statement alone is insufficient
+
+  SOLVE
+  >generate statements for A B` }
+    ,{ title: 'Two Thieves', type: 'Statement synthesis', difficulty: 'New', description: 'Find statements for three people where exactly two are thieves.', source: `SETUP
+  stater A B C
+  type thief innocent
+  types may repeat
+  role thief is truthful
+
+  GOALS
+  generate statements for A B C
+  exactly 2 of A B C is a thief
+  together leave exactly 3 possible thief identities
+  each statement alone is insufficient
+
+  SOLVE
+  >generate statements for A B C` }
+    ,{ title: 'Three of Five', type: 'Statement synthesis', difficulty: 'Challenging', description: 'Search a larger possibility space with exactly three thieves and unresolved identities.', source: `SETUP
+  stater A B C D E
+  type thief innocent
+  types may repeat
+  role thief is truthful
+
+  GOALS
+  generate statements for A B C D E
+  exactly 3 of A B C D E is a thief
+  together leave exactly 5 possible thief identities
+  each statement alone is insufficient
+
+  SOLVE
+  >generate statements for A B C D E` }
     ];
-  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'together', 'jointly', 'leave', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'is', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
+  const keywords = ['SETUP', 'STATEMENTS', 'SOLVE', 'GOALS', 'stater', 'type', 'types', 'may', 'repeat', 'var', 'role', 'truthful', 'lying', 'says', 'rule', 'constraint', 'policy', 'case', 'group', 'exactly', 'atleast', 'atmost', 'threshold', 'find', 'solve', 'try', 'generate', 'statements', 'together', 'jointly', 'leave', 'possible', 'identities', 'each', 'alone', 'insufficient', 'unknown', 'definitely', 'remains', 'is', 'type', 'value', 'All', 'self', 'if', 'elseif', 'else', 'then', 'end', 'on', 'true', 'false', 'positive', 'negative', 'blank', 'and', 'or', 'not', 'wrap'];
   const operators = ['==', '!=', '(', ')', ':', '>'];
   let analysis = { issues: [], lines: [], mode: '' };
   let completionItems = [];
@@ -173,7 +229,7 @@ C : A == beta or A == gamma
   }
   function classify(token) {
     if (/^(SETUP|STATEMENTS|SOLVE|GOALS)$/i.test(token)) return 'syntax-section';
-    if (/^(stater|type|types|may|repeat|var|role|truthful|lying|says|rule|constraint|policy|case|group|exactly|atleast|atmost|threshold|find|solve|try|generate|statements|together|jointly|leave|possible|identities|each|alone|insufficient|unknown|is|value|self|if|elseif|else|then|end|on|true|false|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
+    if (/^(stater|type|types|may|repeat|var|role|truthful|lying|says|rule|constraint|policy|case|group|exactly|atleast|atmost|threshold|find|solve|try|generate|statements|together|jointly|leave|possible|identities|each|alone|insufficient|unknown|definitely|remains|is|value|self|if|elseif|else|then|end|on|true|false|positive|negative|blank|All|wrap)$/i.test(token)) return 'syntax-keyword';
     if (/^(and|or|not)$/i.test(token)) return 'syntax-gate';
     if (/^(<=>|=>|==|!=|:=|:|>|\(|\))$/.test(token)) return 'syntax-operator';
     return 'syntax-name';
@@ -209,7 +265,7 @@ C : A == beta or A == gamma
         return;
       }
       if (mode === 'GOALS') {
-        if (/^(?:generate\s+statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|exactly\s+\d+\s+of\s+)/i.test(text)) return;
+        if (/^(?:generate\s+statements?\s+for|(?:together|jointly)\s+leave\s+exactly|each\s+statement\s+alone|.+\s+statements?\s+are\s+(?:true|false)|exactly\s+\d+\s+of\s+|[A-Za-z_]\w*\s+(?:is|remains)\s+)/i.test(text)) return;
         issues.push({ line: index + 1, message: 'Expected a supported GOALS declaration', from: 0, to: raw.length, fixes: [{ label: 'Comment out this line', text: `# ${raw}` }] });
         return;
       }
@@ -301,6 +357,10 @@ C : A == beta or A == gamma
     if (/^generate\s+statements?\s+for\s+/i.test(line)) return 'Asks LPL to search for statements for the named speakers.';
     if (/^(?:together|jointly)\s+leave\s+exactly\s+/i.test(line)) return 'Requires the generated statements together to leave the requested number of possible identities.';
     if (/^each\s+statement\s+alone\s+/i.test(line)) return 'Requires every generated statement by itself to leave the identity unresolved.';
+    match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+is\s+(?:definitely\s+)?a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
+    if (match) return `Requires ${match[1]} to be a ${match[2]} in every surviving world.`;
+    match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s+(?:remains|is)\s+unknown$/i);
+    if (match) return `Requires ${match[1]} to retain more than one possible type.`;
     if (line.startsWith('>')) return `Asks the solver to ${line.slice(1).trim().replace(/\s+/g, ' ')}.`;
     match = line.match(/^(?:\d+\s*:\s*)?([^:]+?)\s*:\s*(.+)$/);
     if (match) {

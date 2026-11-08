@@ -322,6 +322,25 @@ assert.deepStrictEqual(synthesisCommand.synthesis.tuples[0].possibleIdentities, 
 assert.strictEqual(synthesisCommand.synthesis.tuples[0].checks.jointPossibleIdentities, true);
 assert.strictEqual(synthesisCommand.synthesis.tuples[0].checks.eachAloneInsufficient, true);
 
+const identityGoalModel = parser.parse(`SETUP
+stater A B
+type thief innocent knight
+types may repeat
+role thief is truthful
+GOALS
+generate statements for A B
+exactly 1 of A B is a thief
+A is definitely a thief
+B remains unknown
+SOLVE
+>generate statements for A B`);
+assert.deepStrictEqual(identityGoalModel.goals.map(goal => goal.kind), ['statement-synthesis', 'cardinality', 'identity-fixed', 'identity-ambiguous']);
+const identityGoalResult = solver.solve(identityGoalModel);
+const identityGoalQuery = solver.query(identityGoalResult, identityGoalModel.commands[0]);
+assert.ok(identityGoalQuery.synthesis.tuples.length > 0);
+assert.strictEqual(identityGoalQuery.synthesis.tuples[0].checks.fixedIdentities, true);
+assert.strictEqual(identityGoalQuery.synthesis.tuples[0].checks.ambiguousIdentities, true);
+
 const thresholdModel = parser.parse(`SETUP
 stater A B C
 type alpha beta gamma

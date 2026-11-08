@@ -599,6 +599,18 @@ SOLVE
 
 The generator searches a bounded set of comparisons and small boolean expressions. It keeps a pair only when the statements together satisfy the declared goals and each statement alone leaves the requested identity ambiguous. The result shows the statements, surviving worlds, possible identities, and the individual evidence for each statement.
 
+Identity outcomes can be targeted directly:
+
+```lpl
+GOALS
+generate statements for A B
+exactly 1 of A B is a thief
+A is definitely a thief
+B remains unknown
+```
+
+`A is definitely a thief` requires every surviving world to assign `thief` to A. `B remains unknown` requires B to retain more than one possible type. These goals are evaluated after the generated statements are applied.
+
 The equivalent role policy spellings are `role god is truthful`, `role demon is lying`, `policy god says true`, and `policy demon says false`. The existing context form, `policy type:` followed by context values, keeps its original meaning.
 
 Generation is deliberately bounded and deterministic. Search limits prevent a large expression space from freezing the browser; when a limit is reached, the result is marked as truncated and is not a proof that no other statement exists. Existing `>solve <id>: brute` behavior remains available for one blank statement.

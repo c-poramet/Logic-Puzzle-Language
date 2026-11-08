@@ -88,6 +88,8 @@ Supported commands include:
 28. Use explicit role truth declarations for role-based puzzles. `role god is truthful` and `policy demon says false` are equivalent constant truth policies; do not infer truth behavior from a role name alone.
 29. Use a `GOALS` section or `>generate statements for ...` when the puzzle asks LPL to find statements rather than evaluate supplied statements. `together leave exactly N possible X identities` measures the identity projection after all generated statements are applied.
 30. Interpret `each statement alone is insufficient` as requiring more than one possible identity for every individual generated statement. Report bounded-search truncation as a limitation, not as proof of impossibility.
+31. Translate “A is definitely a thief” in a `GOALS` section as `A is definitely a thief`.
+32. Translate “B remains unknown” or “B’s type is unresolved” in a `GOALS` section as `B remains unknown`; this means B must retain more than one possible type after synthesis.
 
 For a puzzle where several people share one hidden finite state, declare one `case` variable and reference it from each statement. For example, use `case condition present absent` when the source says that the people were in the same one of two conditions. Do not create separate state variables unless the source says their states may differ.
 

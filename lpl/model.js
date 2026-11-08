@@ -41,6 +41,7 @@
       groups: Object.fromEntries((model.groups || []).map(group => [group.name, { ...group, values: group.values.slice() }])),
       rules: (model.rules || []).map(rule => ({ ...rule, branches: rule.branches.map(branch => ({ ...branch, assignments: branch.assignments.map(assignment => ({ ...assignment })) })) })),
       questions: (model.questions || []).map(question => ({ ...question, answers: question.answers.map(answer => ({ ...answer })) })),
+      entityRules: (model.entityRules || []).map(rule => ({ ...rule })),
       statementsById,
       diagnostics: [],
       variable(name) {

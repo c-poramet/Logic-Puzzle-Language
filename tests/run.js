@@ -185,4 +185,18 @@ assert.strictEqual(questionModel.questions.length, 1);
 assert.deepStrictEqual(questionModel.questions[0].answers.map(answer => answer.value), ['positive']);
 assert.strictEqual(questionResult.count, 1);
 assert.strictEqual(questionResult.solutions[0].assignment.A, 'alpha');
+
+const entityModel = parser.parse(`SETUP
+stater Aimee Bob Calvin
+type alpha beta gamma
+var thief in {Aimee, Bob, Calvin}
+rule thief made a false statement
+STATEMENTS
+A : A == beta
+B : A == alpha
+C : A == beta or A == gamma`);
+const entityResult = solver.solve(entityModel);
+assert.strictEqual(entityModel.entityRules[0].kind, 'entity-statement-truth');
+assert.strictEqual(entityResult.count, 2);
+assert.deepStrictEqual([...new Set(entityResult.solutions.map(solution => solution.assignment.thief))].sort(), ['Aimee', 'Bob']);
 console.log('LPL parser and solver tests passed.');

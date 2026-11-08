@@ -73,7 +73,7 @@
     const lines = source.split(/\r?\n/);
     let section = '';
     let activeQuestion = null;
-    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], statements: [], questions: [], commands: [], options: {} };
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], entityRules: [], statements: [], questions: [], commands: [], options: {} };
     let activeRule = null;
     lines.forEach((raw, index) => {
       const line = index + 1;
@@ -111,6 +111,8 @@
             return;
           }
         }
+        const entityRule = text.match(/^(?:rule|constraint)\s+([A-Za-z_][A-Za-z0-9_]*)\s+(?:made\s+)?(?:a\s+)?(true|false)\s+statement$/i);
+        if (entityRule) { model.entityRules.push({ kind: 'entity-statement-truth', variable: entityRule[1], truth: entityRule[2].toLowerCase() === 'true', line }); return; }
         let match = text.match(/^stater\s+(.+)$/i);
         if (match) { model.staters.push(...match[1].split(/[\s,]+/).filter(Boolean)); return; }
         match = text.match(/^type\s+(.+)$/i);

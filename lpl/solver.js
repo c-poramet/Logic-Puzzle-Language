@@ -133,6 +133,21 @@
     return true;
   }
 
+  function entityRulesSatisfied(model, assignment) {
+    for (const rule of model.entityRules || []) {
+      const variable = resolveName(rule.variable, model, rule.variable);
+      const target = assignment[variable];
+      const statements = model.statements.filter(statement => {
+        const subject = normalize(statement.subject);
+        return subject === normalize(target) || normalize(target).startsWith(subject);
+      });
+      if (!statements.length) return false;
+      const truth = statements.map(statement => evaluate(statement.expr, assignment, model, statement.subject));
+      if (!truth.some(value => value === rule.truth)) return false;
+    }
+    return true;
+  }
+
   function solve(model) {
     const solutions = [];
     const explanations = explanationOps.create();
@@ -170,6 +185,10 @@
           return;
         }
         if (!conditionalRulesSatisfied(model, assignment)) return;
+        if (!entityRulesSatisfied(model, assignment)) {
+          explanations.add({ kind: 'entity rule', line: 0, message: 'An entity statement-truth rule is not satisfied.' });
+          return;
+        }
         if (!questionsSatisfied(model, assignment)) {
           explanations.add({ kind: 'question', line: 0, message: 'A question answer is not allowed by its answer block.' });
           return;

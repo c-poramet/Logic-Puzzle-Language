@@ -98,6 +98,15 @@ Question blocks can constrain a proposition to allowed answers:
 
 `positive`, `negative`, and `blank` correspond to true, false, and unknown. Questions do not impose an alpha/beta type rule on their `?` subject.
 
+Entity variables can be connected to the truth of the matching stater statement:
+
+```lpl
+var thief in {Aimee, Bob, Calvin}
+rule thief made a false statement
+```
+
+This makes the muffin puzzle’s “the thief lied” condition executable. The rule requires the assigned entity to have at least one matching statement with the requested truth value.
+
 Statements can be numbered and referenced conditionally:
 
 ```lpl

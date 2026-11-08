@@ -9,6 +9,7 @@
     if (node.kind === 'compare') return `${expressionText(node.left)} ${node.operator} ${expressionText(node.right)}`;
     if (node.kind === 'not') return `not (${expressionText(node.value)})`;
     if (node.kind === 'and' || node.kind === 'or') return `(${expressionText(node.left)} ${node.kind} ${expressionText(node.right)})`;
+    if (node.kind === 'iff') return `(${expressionText(node.left)} <=> ${expressionText(node.right)})`;
     return '?';
   }
 
@@ -44,10 +45,43 @@
     return expressions;
   }
 
+  function truthRoles(model, goals) {
+    const policies = { ...(model.truthPolicies || {}) };
+    for (const goal of goals || []) {
+      if (goal.kind !== 'truth-policy') continue;
+      for (const role of goal.roles || []) policies[normalize(role)] = { truth: goal.truth };
+    }
+    return (model.types || []).filter(type => policies[normalize(type)]?.truth === true || normalize(type) === 'alpha');
+  }
+
+  function exactlyOneExpression(variables, value) {
+    const terms = variables.map(variable => ({
+      kind: 'and',
+      left: { kind: 'compare', operator: '==', left: { kind: 'name', value: variable }, right: { kind: 'name', value } },
+      right: variables.filter(other => other !== variable).map(other => ({ kind: 'compare', operator: '!=', left: { kind: 'name', value: other }, right: { kind: 'name', value } })).reduce((left, right) => left ? { kind: 'and', left, right } : right, null)
+    })).map(term => term.right ? term : term.left);
+    return terms.slice(1).reduce((left, right) => ({ kind: 'or', left, right }), terms[0]);
+  }
+
+  function proofExpressions(model, subjects, goals) {
+    const proof = goals.find(goal => goal.kind === 'prove-cardinality' && goal.operator === 'exactly' && goal.amount === 1);
+    if (!proof || proof.value == null || !proof.variables?.length) return [];
+    const truthfulRoles = truthRoles(model, goals);
+    if (!truthfulRoles.length) return [];
+    const target = exactlyOneExpression(proof.variables, proof.value);
+    const expressions = [];
+    for (const subject of subjects) {
+      const truth = truthfulRoles.map(role => ({ kind: 'compare', operator: '==', left: { kind: 'name', value: subject }, right: { kind: 'name', value: role } })).reduce((left, right) => ({ kind: 'or', left, right }));
+      const expr = { kind: 'iff', left: truth, right: target };
+      expressions.push({ text: expressionText(expr), expr, subject, depth: 2 });
+    }
+    return expressions;
+  }
+
   function generateExpressions(model, subjects, options) {
     const maxDepth = Math.max(0, Number.isInteger(options.maxDepth) ? options.maxDepth : 1);
     const maxExpressions = Math.max(1, Number.isInteger(options.maxExpressions) ? options.maxExpressions : 512);
-    const atoms = atomExpressions(model, subjects);
+    const atoms = [...proofExpressions(model, subjects, options.goals), ...atomExpressions(model, subjects)];
     const expressions = atoms.slice(0, maxExpressions);
     if (maxDepth < 1 || expressions.length >= maxExpressions) return { expressions, truncated: atoms.length > expressions.length };
 
@@ -240,13 +274,15 @@
     const searchLimit = Number.isInteger(options.searchLimit) ? options.searchLimit : null;
     const expressionResult = generateExpressions(model, requestedSubjects, {
       ...options,
+      goals,
       maxExpressions: options.maxExpressions ?? searchLimit ?? undefined
     });
     const kMapData = options.method === 'kmap' ? kMapExpressions(model, requestedSubjects, baseWorlds, evaluate, matchesType, goals, options) : null;
     const expressionData = requestedSubjects.map(subject => {
-      const candidates = kMapData?.[subject]?.length ? [...kMapData[subject], ...expressionResult.expressions] : expressionResult.expressions;
+      const candidates = kMapData?.[subject]?.length ? [...expressionResult.expressions, ...kMapData[subject]] : expressionResult.expressions;
       const seen = new Set();
       return candidates.filter(candidate => {
+        if (candidate.subject && normalize(candidate.subject) !== normalize(subject)) return false;
         if (seen.has(candidate.text)) return false;
         seen.add(candidate.text);
         return true;

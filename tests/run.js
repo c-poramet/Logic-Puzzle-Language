@@ -513,5 +513,6 @@ _ : on {Sun, Sat} L == beta`);
 assert.strictEqual(solver.evaluate(guardModel.statements[0].expr, { L: 'beta', DAY: 'Sun' }, guardModel, 'L'), true);
 assert.strictEqual(solver.evaluate(guardModel.statements[0].expr, { L: 'beta', DAY: 'Mon' }, guardModel, 'L'), null);
 assert.strictEqual(solver.evaluate(guardModel.statements[1].expr, { L: 'beta', DAY: 'Sat' }, guardModel, '_'), true);
+require('./synthesis-matrix.js');
 require('./complex-puzzle.js');
 console.log('LPL parser and solver tests passed.');

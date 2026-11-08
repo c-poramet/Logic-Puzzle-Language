@@ -278,7 +278,7 @@
     if (command.name === 'generate') {
       const subjects = argument.split(/[\s,]+/).filter(Boolean);
       if (root.LPLSynthesis?.generate) {
-        return { ...command, synthesis: root.LPLSynthesis.generate(result, { subjects, statementCount: command.statementCount, method: command.method, evaluate, matchesType }) };
+        return { ...command, synthesis: root.LPLSynthesis.generate(result, { subjects, statementCount: command.statementCount, method: command.method, searchLimit: result.statistics?.threshold, evaluate, matchesType }) };
       }
       return {
         ...command,

@@ -419,6 +419,24 @@ assert.strictEqual(maxSolveResult.count, 1);
 assert.strictEqual(maxSolveResult.statistics.threshold, 1);
 assert.strictEqual(maxSolveResult.statistics.truncated, true);
 
+const maxSynthesisModel = parser.parse(`SETUP
+stater A B
+type god knight demon knave
+types may repeat
+GOALS
+generate statements for A B
+god and knight statements are true
+demon and knave statements are false
+exactly 1 of A B is a god
+together leave exactly 2 possible god identities
+each statement alone is insufficient
+SOLVE
+--max 600
+>generate statements for A B`);
+const maxSynthesisQuery = solver.query(solver.solve(maxSynthesisModel), maxSynthesisModel.commands[0]);
+assert.strictEqual(maxSynthesisQuery.synthesis.limits.maxExpressions, 600);
+assert.ok(maxSynthesisQuery.synthesis.expressionCount > 512);
+
 const completionSource = `SETUP
 stater Aimee Bob
 type alpha beta

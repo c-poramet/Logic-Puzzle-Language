@@ -639,7 +639,7 @@ SOLVE
 >find type All
 ```
 
-The solver explores worlds until it has found `N` surviving results or until every world has been explored. If it reaches the cap, the result is marked truncated; if it explores everything first, the result is complete. `--max` takes precedence over `threshold = N` for that run.
+The solver explores worlds and statement-generation candidates until it has reached `N` results or until every explored search space has been exhausted. If it reaches the cap, the result is marked truncated; if it explores everything first, the result is complete. `--max` takes precedence over `threshold = N` for that run and raises the expression/tuple budget used by `>generate` as well.
 
 ## Guide: Find the Statements
 

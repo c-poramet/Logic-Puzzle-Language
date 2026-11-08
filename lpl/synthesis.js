@@ -235,7 +235,11 @@
     if (typeof evaluate !== 'function' || typeof matchesType !== 'function') return { kind: 'statement-synthesis', supported: false, message: 'Statement synthesis is unavailable in this runtime.' };
 
     const baseWorlds = applyWorldGoals(result.solutions || [], goals);
-    const expressionResult = generateExpressions(model, requestedSubjects, options);
+    const searchLimit = Number.isInteger(options.searchLimit) ? options.searchLimit : null;
+    const expressionResult = generateExpressions(model, requestedSubjects, {
+      ...options,
+      maxExpressions: options.maxExpressions ?? searchLimit ?? undefined
+    });
     const kMapData = options.method === 'kmap' ? kMapExpressions(model, requestedSubjects, baseWorlds, evaluate, matchesType, goals, options) : null;
     const expressionData = requestedSubjects.map(subject => {
       const candidates = kMapData?.[subject]?.length ? [...kMapData[subject], ...expressionResult.expressions] : expressionResult.expressions;
@@ -247,8 +251,8 @@
       }).map(candidate => ({ ...candidate, subject }));
     });
     const candidateWorlds = expressionData.map(candidates => candidates.map(candidate => evaluateCandidate(candidate, baseWorlds, candidate.subject, model, evaluate, matchesType, goals)));
-    const maxTuples = Math.max(1, Number.isInteger(options.maxTuples) ? options.maxTuples : 50000);
-    const maxResults = Math.max(1, Number.isInteger(options.maxResults) ? options.maxResults : 25);
+    const maxTuples = Math.max(1, Number.isInteger(options.maxTuples) ? options.maxTuples : searchLimit || 50000);
+    const maxResults = Math.max(1, Number.isInteger(options.maxResults) ? options.maxResults : searchLimit || 25);
     const tuples = [];
     let tupleCount = 0;
     let truncated = expressionResult.truncated;
@@ -283,7 +287,7 @@
       tupleCount,
       truncated,
       method: options.method === 'kmap' ? 'kmap' : 'default',
-      limits: { maxDepth: options.maxDepth ?? 1, maxExpressions: options.maxExpressions ?? 512, maxTuples, maxResults }
+      limits: { maxDepth: options.maxDepth ?? 1, maxExpressions: options.maxExpressions ?? searchLimit ?? 512, maxTuples, maxResults }
     };
   }
 

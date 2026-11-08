@@ -55,6 +55,22 @@ C : A == beta or A == gamma
   B : self == god or self == knight
 
   >find type All` },
+    { title: 'The Unnamed God', type: 'Statement synthesis', difficulty: 'Challenging', description: 'Find two compact statements that leave either speaker as the only god.', source: `SETUP
+  stater A B
+  type god knight demon knave
+  types may repeat
+
+  GOALS
+  generate statements for A B
+  god and knight statements are true
+  demon and knave statements are false
+  exactly 1 of A B is a god
+  together leave exactly 2 possible god identities
+  each statement alone is insufficient
+
+  SOLVE
+  --max 1000
+  >generate statements for A B using k-map` },
     { title: 'The Missing Muffin', type: 'Role assignment', difficulty: 'Medium', description: 'A finite role variable identifies which person made a false statement.', source: `SETUP
   stater Aimee Bob Calvin
   type alpha beta gamma

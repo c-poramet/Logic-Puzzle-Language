@@ -173,4 +173,16 @@ const ruleResult = solver.solve(ruleModel);
 assert.strictEqual(ruleModel.rules.length, 1);
 assert.strictEqual(ruleResult.count, 7);
 assert.ok(ruleResult.solutions.every(solution => solution.assignment.Lion !== solution.assignment.Unicorn));
+
+const questionModel = parser.parse(`SETUP
+stater A
+type alpha beta gamma
+STATEMENTS
+? : A == alpha
+	_ : positive`);
+const questionResult = solver.solve(questionModel);
+assert.strictEqual(questionModel.questions.length, 1);
+assert.deepStrictEqual(questionModel.questions[0].answers.map(answer => answer.value), ['positive']);
+assert.strictEqual(questionResult.count, 1);
+assert.strictEqual(questionResult.solutions[0].assignment.A, 'alpha');
 console.log('LPL parser and solver tests passed.');

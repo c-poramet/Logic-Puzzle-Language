@@ -42,7 +42,7 @@
       return evaluate(statement.expr, assignment, model, statement.subject, nextSeen);
     }
     if (node.kind === 'not') return logic.not(evaluate(node.value, assignment, model, subject, seen));
-    if (node.kind === 'name') return resolveName(node.value, model, subject);
+    if (node.kind === 'name') return node.value.toLowerCase() === 'self' && subject === '?' ? UNKNOWN : resolveName(node.value, model, subject);
     if (node.kind === 'compare') {
       const leftRaw = node.left.name || node.left.value;
       const rightRaw = node.right.name || node.right.value;
@@ -123,6 +123,16 @@
     return true;
   }
 
+  function questionsSatisfied(model, assignment) {
+    for (const question of model.questions || []) {
+      if (!question.answers.length) continue;
+      const value = evaluate(question.statement.expr, assignment, model, '?');
+      const answer = value === true ? 'positive' : value === false ? 'negative' : 'blank';
+      if (!question.answers.some(option => option.value === answer)) return false;
+    }
+    return true;
+  }
+
   function solve(model) {
     const solutions = [];
     const explanations = explanationOps.create();
@@ -160,13 +170,17 @@
           return;
         }
         if (!conditionalRulesSatisfied(model, assignment)) return;
+        if (!questionsSatisfied(model, assignment)) {
+          explanations.add({ kind: 'question', line: 0, message: 'A question answer is not allowed by its answer block.' });
+          return;
+        }
         const failedRule = (model.cardinalityRules || []).find(rule => !satisfiesCardinality(rule, assignment, model));
         if (failedRule) {
           explanations.add({ kind: 'cardinality', line: failedRule.line, message: `${failedRule.operator} ${failedRule.amount} of ${failedRule.variables.join(', ')} must equal ${failedRule.value}.` });
           return;
         }
         const values = model.statements.map(statement => ({ statement, value: evaluate(statement.expr, assignment, model, statement.subject) }));
-        const failedStatement = values.find(({ statement, value }) => !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value));
+        const failedStatement = values.find(({ statement, value }) => statement.subject !== '?' && !statementOps.isAnonymous(statement.subject) && !matchesType(assignment[resolveName(statement.subject, model, statement.subject)], value));
         if (failedStatement) {
           explanations.add({ kind: 'statement', line: failedStatement.statement.line, message: `${failedStatement.statement.subject}'s statement is incompatible with ${assignment[resolveName(failedStatement.statement.subject, model, failedStatement.statement.subject)]}.` });
           return;

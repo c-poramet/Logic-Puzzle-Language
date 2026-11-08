@@ -72,15 +72,24 @@
   function parse(source) {
     const lines = source.split(/\r?\n/);
     let section = '';
-    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], statements: [], commands: [], options: {} };
+    let activeQuestion = null;
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], statements: [], questions: [], commands: [], options: {} };
     let activeRule = null;
     lines.forEach((raw, index) => {
       const line = index + 1;
       const text = raw.replace(/#.*/, '').trim();
       if (!text) return;
+      const indent = raw.match(/^\s*/)[0].length;
       const upper = text.toUpperCase();
       if (upper === 'SETUP' || upper === 'STATEMENTS') { section = upper; return; }
       if (upper === 'SOLVE') { section = 'SOLVE'; return; }
+      if (section === 'STATEMENTS' && indent > 0 && activeQuestion) {
+        const answer = text.match(/^_\s*(\d+)?\s*:\s*(positive|negative|blank)$/i);
+        if (!answer) throw new ErrorType('Question answers must be positive, negative, or blank', line);
+        activeQuestion.answers.push({ id: answer[1] ? Number(answer[1]) : activeQuestion.answers.length + 1, value: answer[2].toLowerCase(), line });
+        return;
+      }
+      if (indent === 0) activeQuestion = null;
       if (section === 'SETUP') {
         let ruleMatch = text.match(/^if\s+([A-Za-z_][A-Za-z0-9_]*)\s+then$/i);
         if (ruleMatch) {
@@ -156,7 +165,12 @@
       if (statementText === '_') expr = { kind: 'hole' };
       else if (conditional) expr = { kind: 'implies', left: { kind: 'statementRef', id: Number(conditional[1]) }, right: expression(conditional[2], line) };
       else expr = expression(statementText, line);
-      model.statements.push({ id: match[1] ? Number(match[1]) : model.statements.length + 1, subject: match[2].trim(), expr, source: text, line });
+      const statement = { id: match[1] ? Number(match[1]) : model.statements.length + 1, subject: match[2].trim(), expr, source: text, line };
+      model.statements.push(statement);
+      if (statement.subject === '?') {
+        activeQuestion = { statementId: statement.id, statement, answers: [] };
+        model.questions.push(activeQuestion);
+      }
     });
     if (!model.staters.length) throw new ErrorType('No staters declared');
     if (!model.types.length) throw new ErrorType('No types declared');

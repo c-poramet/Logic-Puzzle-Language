@@ -88,6 +88,16 @@ end
 
 The first matching branch applies to each complete world. Richer `on` statements and arbitrary procedural expressions remain future syntax.
 
+Question blocks can constrain a proposition to allowed answers:
+
+```lpl
+? : A == alpha
+	_ : positive
+	_ 1: blank
+```
+
+`positive`, `negative`, and `blank` correspond to true, false, and unknown. Questions do not impose an alpha/beta type rule on their `?` subject.
+
 Statements can be numbered and referenced conditionally:
 
 ```lpl

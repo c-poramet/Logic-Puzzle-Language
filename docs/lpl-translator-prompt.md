@@ -71,6 +71,7 @@ Supported commands include:
 20. Do not emit procedural `if`/`elseif`, `on` statements, questions, or blank-statement synthesis yet; report them as unsupported unless the requested puzzle can be represented with the supported context forms.
 21. Use numbered statements and `if <id>: then ...` only when the referenced proposition is explicitly present. Use `_` for an anonymous subject or hole only when its missing content is intentional and report that assumption.
 22. Use declarative context rules in `SETUP` when a group determines stater types: `if <group> then`, assignments with `:=`, optional `elseif`/`else`, and `end`.
+23. Use question blocks only when the puzzle explicitly restricts allowed answers. Write `? : <proposition>` followed by indented `_ : positive`, `_ : negative`, or `_ : blank` lines.
 
 ## Required response format
 

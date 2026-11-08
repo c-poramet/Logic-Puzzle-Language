@@ -125,7 +125,7 @@
     let section = '';
     let activeQuestion = null;
     let activePolicy = null;
-    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], entityRules: [], policies: {}, statements: [], questions: [], commands: [], options: {} };
+    const model = { staters: [], types: [], valueVariables: [], cardinalityRules: [], caseDeclarations: [], groups: [], rules: [], entityRules: [], policies: {}, truthPolicies: {}, goals: [], statements: [], questions: [], commands: [], options: {} };
     let activeRule = null;
     lines.forEach((raw, index) => {
       const line = index + 1;
@@ -133,7 +133,7 @@
       if (!text) return;
       const indent = raw.match(/^\s*/)[0].length;
       const upper = text.toUpperCase();
-      if (upper === 'SETUP' || upper === 'STATEMENTS') { section = upper; return; }
+      if (upper === 'SETUP' || upper === 'STATEMENTS' || upper === 'GOALS') { section = upper; activePolicy = null; return; }
       if (upper === 'SOLVE') { section = 'SOLVE'; return; }
       if (section === 'STATEMENTS' && indent > 0 && activeQuestion) {
         const answer = text.match(/^_\s*(\d+)?\s*:\s*(positive|negative|blank)$/i);
@@ -143,6 +143,16 @@
       }
       if (indent === 0) activeQuestion = null;
       if (section === 'SETUP') {
+        const roleTruth = text.match(/^role\s+([A-Za-z_][A-Za-z0-9_]*)\s+is\s+(truthful|lying|true|false)$/i);
+        if (roleTruth) {
+          model.truthPolicies[roleTruth[1].toLowerCase()] = { truth: /^(truthful|true)$/i.test(roleTruth[2]), line };
+          return;
+        }
+        const policyTruth = text.match(/^policy\s+([A-Za-z_][A-Za-z0-9_]*)\s+says\s+(true|false)$/i);
+        if (policyTruth) {
+          model.truthPolicies[policyTruth[1].toLowerCase()] = { truth: policyTruth[2].toLowerCase() === 'true', line };
+          return;
+        }
         const policyStart = text.match(/^policy\s+([A-Za-z_][A-Za-z0-9_]*)\s*:\s*$/i);
         if (policyStart) { activePolicy = { type: policyStart[1].toLowerCase(), states: {}, line }; model.policies[activePolicy.type] = activePolicy; return; }
         if (activePolicy && indent > 0) {
@@ -214,7 +224,44 @@
         if (match) { model.options.threshold = Math.max(1, Number(match[1])); return; }
         throw new ErrorType('Expected a stater, type, or threshold declaration', line);
       }
+      if (section === 'GOALS') {
+        let goalMatch = text.match(/^generate\s+statements?\s+for\s+(.+)$/i);
+        if (goalMatch) {
+          const subjects = goalMatch[1].split(/[\s,]+/).filter(Boolean);
+          if (!subjects.length) throw new ErrorType('Statement generation needs at least one subject', line);
+          model.goals.push({ kind: 'statement-synthesis', subjects, line });
+          return;
+        }
+        goalMatch = text.match(/^(?:together|jointly)\s+leave\s+exactly\s+(\d+)\s+possible\s+(.+?)\s+identit(?:y|ies)$/i);
+        if (goalMatch) {
+          model.goals.push({ kind: 'joint-possible-identities', amount: Number(goalMatch[1]), projection: goalMatch[2].replace(/^the\s+/i, '').trim(), line });
+          return;
+        }
+        goalMatch = text.match(/^each\s+statement\s+alone\s+(?:leaves\s+(?:the\s+)?(.+?)\s+identit(?:y|ies)\s+unknown|is\s+insufficient)$/i);
+        if (goalMatch) {
+          model.goals.push({ kind: 'each-alone-insufficient', projection: goalMatch[1]?.replace(/^the\s+/i, '').trim() || 'identity', line });
+          return;
+        }
+        goalMatch = text.match(/^exactly\s+(\d+)\s+of\s+(.+?)\s+is\s+a\s+([A-Za-z_][A-Za-z0-9_]*)$/i);
+        if (goalMatch) {
+          model.goals.push({ kind: 'cardinality', operator: 'exactly', amount: Number(goalMatch[1]), variables: goalMatch[2].split(/[\s,]+/).filter(Boolean), value: goalMatch[3], line });
+          return;
+        }
+        goalMatch = text.match(/^(.+?)\s+statements?\s+are\s+(true|false)$/i);
+        if (goalMatch) {
+          const roles = goalMatch[1].split(/\s+and\s+|,\s*/i).map(value => value.trim()).filter(Boolean);
+          if (!roles.length) throw new ErrorType('A truth goal needs at least one role', line);
+          model.goals.push({ kind: 'truth-policy', roles, truth: goalMatch[2].toLowerCase() === 'true', line });
+          return;
+        }
+        throw new ErrorType('Expected a statement-generation or puzzle goal', line);
+      }
       if (text.startsWith('>')) {
+        const generate = text.match(/^>\s*generate\s+statements?\s+for\s+(.+)$/i);
+        if (generate) {
+          model.commands.push({ name: 'generate', target: 'statements', argument: generate[1].trim(), line });
+          return;
+        }
         const match = text.match(/^>\s*(find|solve|try)\s+(type|value|possible|impossible)?\s*(.*)$/i);
         if (!match) throw new ErrorType('Unknown command', line);
         model.commands.push({ name: match[1].toLowerCase(), target: (match[2] || '').toLowerCase(), argument: match[3].trim(), line });
@@ -249,7 +296,7 @@
     });
     if (!model.staters.length) throw new ErrorType('No staters declared');
     if (!model.types.length) throw new ErrorType('No types declared');
-    if (!model.statements.length) throw new ErrorType('No statements declared');
+    if (!model.statements.length && !model.goals.some(goal => goal.kind === 'statement-synthesis')) throw new ErrorType('No statements declared');
     if (new Set(model.staters.map(value => value.toLowerCase())).size !== model.staters.length) throw new ErrorType('Stater names must be unique');
     if (new Set(model.types).size !== model.types.length) throw new ErrorType('Type names must be unique');
     const names = [...model.staters, ...model.valueVariables.map(variable => variable.name)].map(value => value.toLowerCase());

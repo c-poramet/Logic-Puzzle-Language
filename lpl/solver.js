@@ -108,6 +108,8 @@
   }
 
   function matchesType(type, value, assignment = {}, model = {}) {
+    const truthPolicy = model.truthPolicies?.[normalize(type)];
+    if (truthPolicy) return truthPolicy.truth === value;
     const policy = model.policies?.[normalize(type)];
     if (policy) {
       const state = Object.values(model.contexts || {}).map(context => assignment[context.name]).find(current => current != null && Object.prototype.hasOwnProperty.call(policy.states, normalize(current)));
@@ -271,6 +273,18 @@
 
   function query(result, command) {
     const argument = command.argument;
+    if (command.name === 'generate') {
+      const subjects = argument.split(/[\s,]+/).filter(Boolean);
+      return {
+        ...command,
+        synthesis: {
+          kind: 'statement-synthesis',
+          subjects,
+          supported: false,
+          message: 'Statement synthesis is declared but not implemented yet.'
+        }
+      };
+    }
     if (command.name === 'try') {
       const match = argument.match(/^([^:=]+)\s*:=\s*([A-Za-z_][A-Za-z0-9_]*)$/);
       if (!match) throw new ErrorType('Try expects "Stater := type"', command.line);
@@ -322,7 +336,7 @@
     return { statementId: id, candidates: candidates.slice(0, 100).map(candidate => candidate.text), truncated: candidates.length > 100 };
   }
 
-  const api = { evaluate, solve, query, UNKNOWN };
+  const api = { evaluate, matchesType, solve, query, UNKNOWN };
   root.LPLSolver = api;
   if (typeof module !== 'undefined') module.exports = api;
 })(typeof window === 'undefined' ? globalThis : window);

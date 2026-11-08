@@ -43,6 +43,8 @@
       questions: (model.questions || []).map(question => ({ ...question, answers: question.answers.map(answer => ({ ...answer })) })),
       entityRules: (model.entityRules || []).map(rule => ({ ...rule })),
       policies: Object.fromEntries(Object.entries(model.policies || {}).map(([type, policy]) => [type, { ...policy, states: { ...policy.states } }])),
+      truthPolicies: Object.fromEntries(Object.entries(model.truthPolicies || {}).map(([type, policy]) => [type, { ...policy }])),
+      goals: (model.goals || []).map(goal => ({ ...goal, subjects: goal.subjects?.slice(), roles: goal.roles?.slice(), variables: goal.variables?.slice() })),
       statementsById,
       diagnostics: [],
       variable(name) {

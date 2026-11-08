@@ -280,6 +280,46 @@ const bruteQuery = solver.query(bruteResult, bruteModel.commands[0]);
 assert.strictEqual(bruteResult.count, 2);
 assert.ok(bruteQuery.brute.candidates.includes('A == alpha'));
 
+const synthesisFoundationModel = parser.parse(`SETUP
+stater A B
+type god knight demon knave
+types may repeat
+role god is truthful
+policy knight says true
+role demon is lying
+policy knave says false
+GOALS
+generate statements for A B
+together leave exactly 2 possible god identities
+each statement alone is insufficient
+god and knight statements are true
+demon and knave statements are false
+exactly 1 of A B is a god
+STATEMENTS
+A : A == god
+B : B != god
+SOLVE
+>generate statements for A B`);
+assert.deepStrictEqual(synthesisFoundationModel.truthPolicies, {
+	god: { truth: true, line: 5 },
+	knight: { truth: true, line: 6 },
+	demon: { truth: false, line: 7 },
+	knave: { truth: false, line: 8 }
+});
+assert.deepStrictEqual(synthesisFoundationModel.goals.map(goal => goal.kind), [
+	'statement-synthesis',
+	'joint-possible-identities',
+	'each-alone-insufficient',
+	'truth-policy',
+	'truth-policy',
+	'cardinality'
+]);
+const synthesisFoundationResult = solver.solve(synthesisFoundationModel);
+assert.strictEqual(synthesisFoundationResult.count, 3);
+const synthesisCommand = solver.query(synthesisFoundationResult, synthesisFoundationModel.commands[0]);
+assert.deepStrictEqual(synthesisCommand.synthesis.subjects, ['A', 'B']);
+assert.strictEqual(synthesisCommand.synthesis.supported, false);
+
 const thresholdModel = parser.parse(`SETUP
 stater A B C
 type alpha beta gamma

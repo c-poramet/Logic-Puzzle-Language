@@ -1,5 +1,11 @@
 # Logic Puzzle Language
 
+## Complete Syntax Cookbook
+
+This guide covers the supported syntax families and compares similar forms. Each family includes three examples.
+
+Read the full cookbook here: [docs/lpl-syntax-cookbook.md](docs/lpl-syntax-cookbook.md).
+
 Logic Puzzle Language (LPL) is a no-build browser tool for exploring Knights-and-Knaves-style puzzles and their variants. It follows the local, explicit-update workflow of GridPuzzleSolver: open `index.html`, edit the program, and press **Update now** or `Ctrl/⌘ Enter`.
 
 ## Translate by intuition

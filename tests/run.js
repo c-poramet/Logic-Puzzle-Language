@@ -252,4 +252,15 @@ const bruteResult = solver.solve(bruteModel);
 const bruteQuery = solver.query(bruteResult, bruteModel.commands[0]);
 assert.strictEqual(bruteResult.count, 2);
 assert.ok(bruteQuery.brute.candidates.includes('A == alpha'));
+
+const thresholdModel = parser.parse(`SETUP
+stater A B C
+type alpha beta gamma
+threshold = 1
+STATEMENTS
+_ : _`);
+const thresholdResult = solver.solve(thresholdModel);
+assert.strictEqual(thresholdResult.count, 1);
+assert.strictEqual(thresholdResult.statistics.threshold, 1);
+assert.strictEqual(thresholdResult.statistics.truncated, true);
 console.log('LPL parser and solver tests passed.');

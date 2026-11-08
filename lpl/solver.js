@@ -182,6 +182,8 @@
     const explanations = explanationOps.create();
     let searchNodes = 0;
     let searchLeaves = 0;
+    let truncated = false;
+    const threshold = Number.isInteger(model.options?.threshold) ? model.options.threshold : Infinity;
     const assignment = {};
     const typeNames = model.types;
     const exactOneEach = model.staters.length === typeNames.length;
@@ -202,6 +204,7 @@
       domain: propagated.domains[variable.name] ? [...propagated.domains[variable.name]] : variable.domain
     })));
     const visit = index => {
+      if (truncated) return;
       searchNodes++;
       const failedPossibleRule = (model.cardinalityRules || []).find(rule => !cardinalityCanStillSatisfy(rule, assignment, model));
       if (failedPossibleRule) {
@@ -235,6 +238,7 @@
           return;
         }
         solutions.push({ assignment: { ...assignment }, values });
+        if (solutions.length >= threshold) truncated = true;
         return;
       }
       const variable = variables[index];
@@ -254,7 +258,7 @@
       }
     };
     visit(0);
-    return { model, solutions, count: solutions.length, exactOneEach, statistics: { ...propagated, searchNodes, searchLeaves, variableOrder: variables.map(variable => variable.name) }, explanations: explanations.list() };
+    return { model, solutions, count: solutions.length, exactOneEach, statistics: { ...propagated, searchNodes, searchLeaves, variableOrder: variables.map(variable => variable.name), threshold, truncated }, explanations: explanations.list() };
   }
 
   function query(result, command) {

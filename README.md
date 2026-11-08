@@ -165,6 +165,14 @@ Blank comparison statements can be synthesized with a bounded brute-force query:
 
 The current synthesis explores single `==` and `!=` comparisons over declared variables, `self`, and declared values. Larger partial-expression synthesis remains future work.
 
+An optional setup threshold bounds enumeration:
+
+```lpl
+threshold = 10
+```
+
+When the limit is reached, the result reports `threshold reached` and is marked truncated. Possible-value queries over truncated results are lower bounds rather than exhaustive impossibility proofs.
+
 ## Commands
 
 - `>find type All` lists surviving type assignments.

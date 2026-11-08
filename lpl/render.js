@@ -11,7 +11,7 @@
       return `<div class="query-result"><div class="query-title">${esc(command.name)} ${esc(command.target || 'value')}</div><div class="query-list">${command.choices.map(choice => `<div class="query-row"><strong>${esc(choice.name)}</strong><span class="query-possible">${choice.possible.length ? choice.possible.map(esc).join(', ') : 'none'}</span>${choice.impossible.length ? `<span class="query-impossible">impossible: ${choice.impossible.map(esc).join(', ')}</span>` : ''}</div>`).join('')}</div></div>`;
     };
     output.push(`<div class="stats"><div class="stat"><strong>${result.count}</strong><span>surviving worlds</span></div><div class="stat"><strong>${model.staters.length}</strong><span>staters</span></div><div class="stat"><strong>${model.statements.length}</strong><span>statements</span></div></div>`);
-    const statsNote = result.statistics ? `${result.statistics.searchLeaves || 0} leaves · ${result.statistics.searchNodes || 0} nodes` : '';
+    const statsNote = result.statistics ? `${result.statistics.searchLeaves || 0} leaves · ${result.statistics.searchNodes || 0} nodes${result.statistics.truncated ? ' · threshold reached' : ''}` : '';
     output.push(`<div class="result-head"><h2>Possibility space</h2><span class="note">${result.exactOneEach ? 'exactly one of each type' : 'no cardinality rule'}${statsNote ? ` · ${statsNote}` : ''}</span></div>`);
     commands.forEach((command, index) => {
       const count = command.name === 'try' ? command.count : result.count;

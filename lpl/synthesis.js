@@ -25,45 +25,6 @@
     return [...new Set(names.map(String))];
   }
 
-  function roleTruthGroups(model, goals) {
-    const groups = { truthful: [], lying: [] };
-    const policies = { ...(model.truthPolicies || {}) };
-    for (const goal of goals || []) {
-      if (goal.kind !== 'truth-policy') continue;
-      for (const role of goal.roles || []) policies[normalize(role)] = { truth: goal.truth };
-    }
-    for (const type of model.types || []) {
-      const policy = policies[normalize(type)];
-      if (policy?.truth === true || normalize(type) === 'alpha') groups.truthful.push(type);
-      if (policy?.truth === false || normalize(type) === 'beta') groups.lying.push(type);
-    }
-    return groups;
-  }
-
-  function roleGroupExpression(target, roles) {
-    const nodes = roles.map(role => ({ kind: 'compare', operator: '==', left: { kind: 'name', value: target }, right: { kind: 'name', value: role } }));
-    if (!nodes.length) return null;
-    return nodes.slice(1).reduce((left, right) => ({ kind: 'or', left, right }), nodes[0]);
-  }
-
-  function rolePhraseExpressions(model, subjects, goals) {
-    const groups = roleTruthGroups(model, goals);
-    const targets = ['self', ...subjects, ...model.staters].filter((target, index, values) => values.findIndex(value => normalize(value) === normalize(target)) === index);
-    const expressions = [];
-    const add = (target, roles, readings) => {
-      const expr = roleGroupExpression(target, roles);
-      if (!expr) return;
-      expressions.push({ text: expressionText(expr), expr, depth: 1, readings });
-    };
-    for (const target of targets) {
-      const subject = normalize(target) === 'self' ? 'I' : target;
-      const verb = subject === 'I' ? 'am' : 'is';
-      add(target, groups.truthful, [`${subject} ${verb} telling the truth`, `${subject} ${verb} not lying`]);
-      add(target, groups.lying, [`${subject} ${verb} lying`, `${subject} ${verb} not telling the truth`]);
-    }
-    return expressions;
-  }
-
   function atomExpressions(model, subjects) {
     const names = modelNames(model, subjects);
     const expressions = [];
@@ -86,7 +47,7 @@
   function generateExpressions(model, subjects, options) {
     const maxDepth = Math.max(0, Number.isInteger(options.maxDepth) ? options.maxDepth : 1);
     const maxExpressions = Math.max(1, Number.isInteger(options.maxExpressions) ? options.maxExpressions : 512);
-    const atoms = [...rolePhraseExpressions(model, subjects, options.goals), ...atomExpressions(model, subjects)];
+    const atoms = atomExpressions(model, subjects);
     const expressions = atoms.slice(0, maxExpressions);
     if (maxDepth < 1 || expressions.length >= maxExpressions) return { expressions, truncated: atoms.length > expressions.length };
 
@@ -114,7 +75,7 @@
   }
 
   function kMapExpression(model, subjects, subject, worlds, evaluate, matchesType, goals, options) {
-    const atoms = [...rolePhraseExpressions(model, subjects, goals), ...atomExpressions(model, subjects)].map(candidate => ({
+    const atoms = atomExpressions(model, subjects).map(candidate => ({
       ...candidate,
       values: worlds.map(world => evaluate(candidate.expr, world.assignment, model, subject))
     })).filter(candidate => candidate.values.every(value => value === true || value === false));
@@ -171,9 +132,7 @@
     if (uncovered.size) return null;
     const termNodes = selectedTerms.map(term => combineNodes(term.literals.map(literal => literal.positive ? cloneNode(features[literal.index].expr) : { kind: 'not', value: cloneNode(features[literal.index].expr) }), 'and'));
     const expr = termNodes.length === 1 ? termNodes[0] : combineNodes(termNodes, 'or');
-    const text = expressionText(expr);
-    const phrase = rolePhraseExpressions(model, subjects, goals).find(candidate => candidate.text === text);
-    return { text, expr, depth: 1, method: 'kmap', readings: phrase?.readings };
+    return { text: expressionText(expr), expr, depth: 1, method: 'kmap' };
   }
 
   function kMapExpressions(model, subjects, worlds, evaluate, matchesType, goals, options) {
@@ -279,7 +238,6 @@
     const searchLimit = Number.isInteger(options.searchLimit) ? options.searchLimit : null;
     const expressionResult = generateExpressions(model, requestedSubjects, {
       ...options,
-      goals,
       maxExpressions: options.maxExpressions ?? searchLimit ?? undefined
     });
     const kMapData = options.method === 'kmap' ? kMapExpressions(model, requestedSubjects, baseWorlds, evaluate, matchesType, goals, options) : null;
@@ -306,7 +264,7 @@
         const detail = checkGoals({ jointWorlds: worlds, singleWorlds }, baseWorlds, requestedSubjects, goals);
         if (!detail.pass) return;
         tuples.push({
-          statements: selected.map((candidate, candidateIndex) => ({ subject: requestedSubjects[candidateIndex], text: candidate.text, reading: candidate.readings?.[0], readings: candidate.readings, expr: cloneNode(candidate.expr) })),
+          statements: selected.map((candidate, candidateIndex) => ({ subject: requestedSubjects[candidateIndex], text: candidate.text, expr: cloneNode(candidate.expr) })),
           ...detail
         });
         return;
